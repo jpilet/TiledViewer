@@ -77,7 +77,6 @@ function InitializeTiledViewer(element) {
 				startWorldPos: tiledViewer.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 				startViewerPos: viewerPos,
 			};
-			console.log('Touch start: ' + touches[i].identifier + ' ' + viewerPos.x + ', ' + viewerPos.y);
 		}
 	}
 	
@@ -99,7 +98,14 @@ function InitializeTiledViewer(element) {
 		var touches = event.touches;
 		var constraints = [];
 		for (var i = 0; i < touches.length; i++) {
-			assert(touches[i].identifier in tiledViewer.ongoingTouches);
+			if (!touches[i].identifier in tiledViewer.ongoingTouches) {
+				// For some reason, we did not get the start event.
+				var viewerPos = eventPosInElementCoordinates(touches[i], event.srcElement);
+			  tiledViewer.ongoingTouches[touches[i].identifier] = {
+				  startWorldPos: tiledViewer.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+				  startViewerPos: viewerPos,
+			  };
+			}
 			var touch = tiledViewer.ongoingTouches[touches[i].identifier];
 			
 			// Every touch is a constraint
