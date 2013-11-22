@@ -179,26 +179,19 @@ function InitializeTiledViewer(element) {
 		var tiledViewer = element.tiledViewer;
     var context = canvas.getContext('2d');
 
-	  var p1 = tiledViewer.viewerPosFromWorldPos(100,20);
-	  var p2 = tiledViewer.viewerPosFromWorldPos(400,160);
+	  var p1 = tiledViewer.viewerPosFromWorldPos(0, 0);
+	  var p2 = tiledViewer.viewerPosFromWorldPos(555, 260);
 	  
 	  context.clearRect(0, 0, canvas.width, canvas.height);
 	  
-    context.beginPath();
-    context.moveTo(p1.x, p1.y);
-
-    // line 1
-    context.lineTo(p2.x, p2.y);
-
-    context.lineWidth = 5;
-    context.strokeStyle = 'blue';
-    context.stroke();
+	  context.drawImage(tiledViewer.imageObj, p1.x, p1.y, (p2.x - p1.x), (p2.y - p1.y));
 	}
 	
 	element.tiledViewer = {
 		initialized: true,
 		ongoingTouches: {},
 		view2world: [1,0,0, 0,1,0],
+		imageObj: new Image(),
 		worldPosFromViewerPos: function(x, y) {
 			// We want u,v where
 			// a b * u + e = x
@@ -228,7 +221,9 @@ function InitializeTiledViewer(element) {
   element.addEventListener("touchcancel", handleEnd, false);
   element.addEventListener("touchleave", handleEnd, false);
   element.addEventListener("touchmove", handleMove, false);
-  draw();
+  
+  element.tiledViewer.imageObj.src = "http://video.jpmguides.com/headers/fr/1.jpg";
+  element.tiledViewer.imageObj.onload = draw;
 }
 
 // shim layer with setTimeout fallback
