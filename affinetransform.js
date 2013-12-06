@@ -1,5 +1,11 @@
-function AffineTransform() {
-  this.matrix = [1,0,0, 0,1,0];
+function AffineTransform(transform) {
+  if (transform instanceof Array && transform.length == 6) {
+    this.matrix = transform.slice(0);
+  } else if (transform && matrix in transform) {
+    this.matrix = transform.matrix.slice(0);
+  } else {
+    this.matrix = [1,0,0, 0,1,0];
+  }
 }
 
 AffineTransform.prototype.transform = function (x_, y_) {

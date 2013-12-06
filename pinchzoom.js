@@ -18,6 +18,18 @@ function PinchZoom(element, transformChanged) {
   element.pinchZoomInstance = this;
 }
 
+PinchZoom.prototype.setTransform = function(transform) {
+  this.transform = new AffineTransform(transform);
+  
+  var viewerPos = Utils.eventPosInElementCoordinates(event, event.srcElement);
+  if (this.ongoingTouches.mouse) {
+    var viewerPos =  this.ongoingTouches.mouse.startViewerPos;
+    this.ongoingTouches.mouse.startWorldPos = this.worldPosFromViewerPos(viewerPos.x, viewerPos.y);
+  } else {
+    this.ongoingTouches = {};
+  }
+};
+
 PinchZoom.prototype.worldPosFromViewerPos = function(x, y) {
   return this.transform.inverseTransform(x, y);
 };
@@ -47,6 +59,7 @@ PinchZoom.prototype.handleMouseUp = function(event) {
 PinchZoom.prototype.handleMouseMove = function(event) {
   event.preventDefault();
   var pinchZoom = event.srcElement.pinchZoomInstance;
+    
   if (pinchZoom.ongoingTouches.mouse) {
     var constraints = [{
       viewer: Utils.eventPosInElementCoordinates(event, event.srcElement),
