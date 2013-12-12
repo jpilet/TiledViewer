@@ -45,3 +45,8 @@ AffineTransform.prototype.scale = function (scaleFactor) {
   this.matrix[3] *= scaleFactor;
   this.matrix[4] *= scaleFactor;
 };
+
+AffineTransform.prototype.canvasSetTransform = function(canvas) {
+  var t = this.matrix;
+  canvas.setTransform(t[0], t[3], t[1], t[4], t[2], t[5]);
+};

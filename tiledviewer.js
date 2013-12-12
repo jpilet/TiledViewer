@@ -8,7 +8,7 @@ function InitializeTiledViewer(element) {
 function TiledViewer(element) {
   this.imageObj = new Image();
   this.imageObj.src = "http://video.jpmguides.com/headers/fr/1.jpg";
-  
+
   var tiledViewer = this;
   var draw = function(t) { tiledViewer.draw(element); };
   this.pinchZoom = new PinchZoom(element, draw);
@@ -17,13 +17,13 @@ function TiledViewer(element) {
 
 TiledViewer.prototype.draw = function(canvas) {
   var context = canvas.getContext('2d');
-
-  var p1 = this.pinchZoom.viewerPosFromWorldPos(0, 0);
-  var p2 = this.pinchZoom.viewerPosFromWorldPos(555, 260);
-  
+  context.save();
   context.clearRect(0, 0, canvas.width, canvas.height);
-  
-  context.drawImage(this.imageObj, p1.x, p1.y, (p2.x - p1.x), (p2.y - p1.y));
+
+  this.pinchZoom.transform.canvasSetTransform(context);
+
+  context.drawImage(this.imageObj, 0, 0, 555, 260);
+  context.restore();
 };
 
 TiledViewer.prototype.debug = function(str) {
