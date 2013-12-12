@@ -9,6 +9,7 @@
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
   <script src="pinchzoom.js"></script>
+  <script src="CanvasTilesRenderer.js"></script>
   <script src="tiledviewer.js"></script>
 </head>
 
@@ -18,8 +19,12 @@
     <canvas id="viewer" width="400" height="400" style="border:solid black 3px;">
     	Your browser sucks.
     </canvas>
+    <canvas id="viewer2" width="400" height="400" style="border:solid black 3px;">
+      Your browser sucks.
+    </canvas>
     <script>
     	InitializeTiledViewer(document.getElementById("viewer"));
+    	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer2"));
     </script>
 </body>
 </html>

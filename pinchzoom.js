@@ -7,21 +7,31 @@ function PinchZoom(element, transformChanged) {
   this.transform = new AffineTransform();
   this.transformChanged = transformChanged;
   
-  element.addEventListener("touchstart", this.handleStart, false);
-  element.addEventListener("touchend", this.handleEnd, false);
-  element.addEventListener("touchmove", this.handleMove, false);
-  element.addEventListener("mousedown", this.handleMouseDown, false);
-  element.addEventListener("mousemove", this.handleMouseMove, false);
-  element.addEventListener("mouseup", this.handleMouseUp, false);
-  addWheelListener(element, this.handleMouseWheel);
+  var t = this;
+  element.addEventListener("touchstart", function(event) { t.handleStart(event); }, false);
+  element.addEventListener("touchend", function(event) { t.handleEnd(event); }, false);
+  element.addEventListener("touchmove", function(event) { t.handleMove(event); }, false);
+  element.addEventListener("mousedown", function(event) { t.handleMouseDown(event); }, false);
+  element.addEventListener("mousemove", function(event) { t.handleMouseMove(event); }, false);
+  element.addEventListener("mouseup", function(event) { t.handleMouseUp(event); }, false);
+  addWheelListener(element, function(event) { t.handleMouseWheel(event); });
   
   element.pinchZoomInstance = this;
+  this.element = element;
 }
+
+PinchZoom.prototype.eventElement = function(event) {
+  if (event.srcElement) { return event.srcElement; }
+  else if (event.currentTarget) { return event.currentTarget; }
+  else {
+    return undefined;
+  }
+};
 
 PinchZoom.prototype.setTransform = function(transform) {
   this.transform = new AffineTransform(transform);
   
-  var viewerPos = Utils.eventPosInElementCoordinates(event, event.srcElement);
+  var viewerPos = Utils.eventPosInElementCoordinates(event, eventElement(event));
   if (this.ongoingTouches.mouse) {
     var viewerPos =  this.ongoingTouches.mouse.startViewerPos;
     this.ongoingTouches.mouse.startWorldPos = this.worldPosFromViewerPos(viewerPos.x, viewerPos.y);
@@ -39,98 +49,89 @@ PinchZoom.prototype.viewerPosFromWorldPos = function(x, y) {
 };
 
 PinchZoom.prototype.handleMouseDown = function(event) {
-  event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
-  
-  var viewerPos = Utils.eventPosInElementCoordinates(event, event.srcElement);
-    pinchZoom.ongoingTouches.mouse = {
-      startWorldPos: pinchZoom.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+    var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
+    this.ongoingTouches.mouse = {
+      startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
       startViewerPos: viewerPos,
     };
 };
 
 PinchZoom.prototype.handleMouseUp = function(event) {
   event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
-  pinchZoom.handleMouseMove(event);
-  pinchZoom.ongoingTouches.mouse = undefined;
+  this.handleMouseMove(event);
+  this.ongoingTouches.mouse = undefined;
 };
 
 PinchZoom.prototype.handleMouseMove = function(event) {
   event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
-    
-  if (pinchZoom.ongoingTouches.mouse) {
+  
+  if (this.ongoingTouches.mouse) {
     var constraints = [{
-      viewer: Utils.eventPosInElementCoordinates(event, event.srcElement),
-      world: pinchZoom.ongoingTouches.mouse.startWorldPos,
+      viewer: Utils.eventPosInElementCoordinates(event, this.element),
+      world: this.ongoingTouches.mouse.startWorldPos,
     }];
-    pinchZoom.processConstraints(constraints);
+    this.processConstraints(constraints);
   }
 };
 
 PinchZoom.prototype.handleMouseWheel = function(event) {
   event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
   
-  var viewerPos = Utils.eventPosInElementCoordinates(event, event.srcElement);
+  var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
   var constraints = [{
       viewer: viewerPos,
-      world: pinchZoom.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
   }];
   var scaleFactor = 1.0 - Math.max(-.2, Math.min(.2, event.deltaY / 20.0));
   
-  pinchZoom.transform.scale(scaleFactor);
-  pinchZoom.processConstraints(constraints);
+  this.transform.scale(scaleFactor);
+  this.processConstraints(constraints);
 };
 
 PinchZoom.prototype.handleStart = function(event) {
 	event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
 	
 	var touches = event.changedTouches;
 	for (var i = 0; i < touches.length; i++) {
-		var viewerPos = Utils.eventPosInElementCoordinates(touches[i], event.srcElement);
-		pinchZoom.ongoingTouches[touches[i].identifier] = {
-			startWorldPos: pinchZoom.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+		var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
+		this.ongoingTouches[touches[i].identifier] = {
+			startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 			startViewerPos: viewerPos,
 		};
 	}
 };
 	
 PinchZoom.prototype.handleEnd = function(event) {
-	var tiledViewer = event.srcElement.tiledViewer;
-  var pinchZoom = event.srcElement.pinchZoomInstance;
+  var pinchZoom = this;
 	var touches = event.changedTouches;
 	for (var i = 0; i < touches.length; i++) {
-		Utils.assert(touches[i].identifier in pinchZoom.ongoingTouches);
-		delete pinchZoom.ongoingTouches[touches[i].identifier];
+		Utils.assert(touches[i].identifier in this.ongoingTouches);
+		delete this.ongoingTouches[touches[i].identifier];
 	}	
 };
 
 PinchZoom.prototype.handleMove = function(event) {
 	event.preventDefault();
-  var pinchZoom = event.srcElement.pinchZoomInstance;
 	var touches = event.touches;
 	var constraints = [];
 	for (var i = 0; i < touches.length; i++) {
-		if (!touches[i].identifier in pinchZoom.ongoingTouches) {
+		if (!touches[i].identifier in this.ongoingTouches) {
 			// For some reason, we did not get the start event.
-			var viewerPos = Utils.eventPosInElementCoordinates(touches[i], event.srcElement);
-		  pinchZoom.ongoingTouches[touches[i].identifier] = {
-			  startWorldPos: tiledViewer.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+			var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
+		  this.ongoingTouches[touches[i].identifier] = {
+			  startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 			  startViewerPos: viewerPos,
 		  };
 		}
-		var touch = pinchZoom.ongoingTouches[touches[i].identifier];
+		var touch = this.ongoingTouches[touches[i].identifier];
 		
 		// Every touch is a constraint
 		constraints.push({
-			viewer: Utils.eventPosInElementCoordinates(touches[i], event.srcElement),
+			viewer: Utils.eventPosInElementCoordinates(touches[i], this.element),
 			world: touch.startWorldPos,
 		});
 	}
-	pinchZoom.processConstraints(constraints);
+	this.processConstraints(constraints);
 };
 
 PinchZoom.prototype.processConstraints = function(constraints) {
