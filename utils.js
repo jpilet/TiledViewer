@@ -114,6 +114,8 @@ window.requestAnimFrame = (function(){
                 deltaMode: originalEvent.type == "MozMousePixelScroll" ? 0 : 1,
                 deltaX: 0,
                 delatZ: 0,
+                pageX: originalEvent.pageX,
+                pageY: originalEvent.pageY,
                 preventDefault: function() {
                     originalEvent.preventDefault ?
                         originalEvent.preventDefault() :
