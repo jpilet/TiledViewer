@@ -41,7 +41,12 @@ function CanvasTilesRenderer(canvas, params) {
 CanvasTilesRenderer.prototype.getLocation = function() {
   var left = this.pinchZoom.worldPosFromViewerPos({x: 0, y:this.canvas.height / 2});
   var right = this.pinchZoom.worldPosFromViewerPos({x: this.canvas.width, y:this.canvas.height / 2});
-  return { x: (left.x + right.x) / 2, y: (left.y + right.y) / 2, scale: (right.x - left.x)};
+  
+  return {
+    x: (left.x + right.x) / 2,
+    y: (left.y + right.y) / 2,
+    scale: Utils.distance(right, left)
+  };
 };
 
 CanvasTilesRenderer.prototype.setLocation = function(location) {
