@@ -66,8 +66,9 @@ PinchZoom.prototype.handleMouseMove = function(event) {
   event.preventDefault();
   
   if (this.ongoingTouches.mouse) {
+    this.ongoingTouches.mouse.currentViewerPos = Utils.eventPosInElementCoordinates(event, this.element);
     var constraints = [{
-      viewer: Utils.eventPosInElementCoordinates(event, this.element),
+      viewer: this.ongoingTouches.mouse.currentViewerPos,
       world: this.ongoingTouches.mouse.startWorldPos,
     }];
     this.processConstraints(constraints);

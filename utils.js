@@ -52,8 +52,8 @@ this.Utils = {
   eventPosInElementCoordinates: function(event, element) {
     var rect = element.getBoundingClientRect();
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: (event.clientX - rect.left) * (element.width / element.offsetWidth),
+      y: (event.clientY - rect.top) * (element.height / element.offsetHeight)
     };    
   },
 };
