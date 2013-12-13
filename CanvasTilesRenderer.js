@@ -21,6 +21,9 @@ function CanvasTilesRenderer(canvas, params) {
   this.numDraw = 0;
   this.numCachedTiles = 0;
   
+  canvas.width = canvas.offsetWidth * (window.devicePixelRatio ? window.devicePixelRatio : 1);
+  canvas.height = canvas.offsetHeight * (window.devicePixelRatio ? window.devicePixelRatio : 1);
+
   var t = this;
   var draw = function() {
     if (t.inDraw) { return; }
@@ -29,6 +32,8 @@ function CanvasTilesRenderer(canvas, params) {
   };
   this.pinchZoom = new PinchZoom(canvas, draw);
 
+  canvas.addEventListener("onresize", draw, false);
+  
   // We are ready, let's allow drawing.  
   this.inDraw = false;
   if (params.initialLocation) {
@@ -67,6 +72,14 @@ CanvasTilesRenderer.prototype.draw = function() {
   var canvas = this.canvas;
   var pinchZoom = this.pinchZoom;
   
+  var newWidth = canvas.offsetWidth * (window.devicePixelRatio ? window.devicePixelRatio : 1);
+  var newHeight = canvas.offsetHeight * (window.devicePixelRatio ? window.devicePixelRatio : 1);
+  if (newWidth != canvas.width || newHeight != canvas.height) {
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+  }
+
+  
   // Compute a bounding box of the viewer area in world coordinates.
   var cornersPix = [
     {x: 0, y: 0},
@@ -89,7 +102,7 @@ CanvasTilesRenderer.prototype.draw = function() {
   // Compute the scale level
   var numTiles = canvas.width / this.params.tileSize;
   var targetUnitPerTile = (bboxBottomRight.x - bboxTopLeft.x) / numTiles;
-  var scale = Math.max(0, Math.ceil(- Math.log(targetUnitPerTile) / Math.LN2));
+  var scale = Math.max(0, Math.floor(- Math.log(targetUnitPerTile) / Math.LN2));
   var actualUnitPerTile = 1 / (1 << scale);
 
   var getTileX = function(unitX) { return  Math.floor(unitX * (1 << scale)); };
@@ -107,6 +120,8 @@ CanvasTilesRenderer.prototype.draw = function() {
 
   pinchZoom.transform.canvasSetTransform(context);
   
+  Utils.assert(firstTileY != undefined);
+  
   for (var tileY = firstTileY; tileY <= lastTileY; ++tileY) {
     for (var tileX = firstTileX; tileX <= lastTileX; ++tileX) {
       this.renderTile(scale, tileX, tileY, context);
@@ -114,9 +129,22 @@ CanvasTilesRenderer.prototype.draw = function() {
   }
   
   context.restore();
+  
+  if (0) {
+    // Draw mouse position on canvas for debugging purpose
+    if (this.pinchZoom.ongoingTouches.mouse && this.pinchZoom.ongoingTouches.mouse.currentViewerPos) {
+      var pos = this.pinchZoom.ongoingTouches.mouse.currentViewerPos;
+      context.beginPath();
+        context.arc(pos.x, pos.y, 20, 0, 2 * Math.PI, false);
+        context.fillStyle = 'green';
+        context.fill();
+    }
+  }
   this.inDraw = false;
   ++this.numDraw;
   
+  this.processQueue();
+
   // control memory usage.
   this.limitCacheSize();
 };
@@ -128,13 +156,26 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
   var top = tileY * zoom;
   var bottom = (tileY + 1) * zoom;
   
-  var tile = this.getTile(scale, tileX, tileY);
-  if (tile && tile.image && tile.image.complete) {
-    context.drawImage(tile.image, left, top, (right - left), (bottom - top));
+  for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
+    var upTileX = tileX >> upLevel;
+    var upTileY = tileY >> upLevel;
+    
+    var tile = this.getTile(scale - upLevel, upTileX , upTileY, 1 - upLevel * .15);
+    if (tile && tile.image && tile.image.complete) {
+      var skipX = tileX - (upTileX << upLevel);
+      var skipY = tileY - (upTileY << upLevel);
+      var size = this.params.tileSize >> upLevel;
+      context.drawImage(tile.image,
+        skipX * size, skipY * size,
+        size, size,
+        left, top,
+        (right - left), (bottom - top));
+      break;
+    }
   }
 };
 
-CanvasTilesRenderer.prototype.getTile = function(scale, x, y) {
+CanvasTilesRenderer.prototype.getTile = function(scale, x, y, priority) {
   if (x < 0 || y < 0 || x >= (1 << scale) || y >= (1 << scale)) {
     return undefined;
   }
@@ -143,20 +184,25 @@ CanvasTilesRenderer.prototype.getTile = function(scale, x, y) {
   
   if (key in this.tiles) {
     var tile = this.tiles[key];
-    tile.lastDrawRequest = this.numDraw;
+    if (tile.lastDrawRequest == this.numDraw) {
+      tile.priority += priority;
+    } else {
+      tile.lastDrawRequest = this.numDraw;
+      tile.priority = priority;
+    }
     return tile;
   }
   
   var url = this.params.url(scale, x, y);
-  this.queueTileRequest(key, url);
-  return this.tiles[key];
+  return this.queueTileRequest(key, url, priority);
 };
 
-CanvasTilesRenderer.prototype.queueTileRequest = function(key, url) {
-  var tile = { lastDrawRequest: this.numDraw };
+CanvasTilesRenderer.prototype.queueTileRequest = function(key, url, priority) {
+  var tile = { lastDrawRequest: this.numDraw, priority: priority };
+  Utils.assert(tile.priority != undefined);
   this.loadQueue.push({key: key, url: url, tile: tile});
   this.tiles[key] = tile;
-  this.processQueue();
+  return tile;
 };
 
 CanvasTilesRenderer.prototype.processQueue = function() {
@@ -164,7 +210,12 @@ CanvasTilesRenderer.prototype.processQueue = function() {
   
   // Prioritize loading
   if (this.numLoading < this.params.maxSimultaneousLoads && queue.length > 0) {
-    this.loadQueue.sort(function(a, b) { return a.tile.lastDrawRequest - b.tile.lastDrawRequest; });
+    this.loadQueue.sort(function(a, b) {
+      if (a.tile.lastDrawRequest == b.tile.lastDrawRequest) {
+        return a.tile.priority - b.tile.priority;
+      }
+      return a.tile.lastDrawRequest - b.tile.lastDrawRequest;
+    });
   }
   while (this.numLoading < this.params.maxSimultaneousLoads && queue.length > 0) {  
     var query = this.loadQueue.pop();
