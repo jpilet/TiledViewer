@@ -32,7 +32,7 @@ PinchZoom.prototype.eventElement = function(event) {
 PinchZoom.prototype.setTransform = function(transform) {
   this.transform = new AffineTransform(transform);
   
-  var viewerPos = Utils.eventPosInElementCoordinates(event, eventElement(event));
+  var viewerPos = Utils.eventPosInElementCoordinates(event, this.eventElement(event));
   if (this.ongoingTouches.mouse) {
     var viewerPos =  this.ongoingTouches.mouse.startViewerPos;
     this.ongoingTouches.mouse.startWorldPos = this.worldPosFromViewerPos(viewerPos.x, viewerPos.y);
