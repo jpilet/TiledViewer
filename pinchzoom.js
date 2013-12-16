@@ -8,12 +8,13 @@ function PinchZoom(element, transformChanged) {
   this.transformChanged = transformChanged;
   
   var t = this;
-  element.addEventListener("touchstart", function(event) { t.handleStart(event); }, false);
-  element.addEventListener("touchend", function(event) { t.handleEnd(event); }, false);
-  element.addEventListener("touchmove", function(event) { t.handleMove(event); }, false);
-  element.addEventListener("mousedown", function(event) { t.handleMouseDown(event); }, false);
-  element.addEventListener("mousemove", function(event) { t.handleMouseMove(event); }, false);
-  element.addEventListener("mouseup", function(event) { t.handleMouseUp(event); }, false);
+  var e = element;
+  e.addEventListener("touchstart", function(event) { t.handleStart(event); }, false);
+  e.addEventListener("touchend", function(event) { t.handleEnd(event); }, false);
+  e.addEventListener("touchmove", function(event) { t.handleMove(event); }, false);
+  e.addEventListener("mousedown", function(event) { t.handleMouseDown(event); }, false);
+  e.addEventListener("mousemove", function(event) { t.handleMouseMove(event); }, false);
+  e.addEventListener("mouseup", function(event) { t.handleMouseUp(event); }, false);
   addWheelListener(element, function(event) { t.handleMouseWheel(event); });
   
   element.pinchZoomInstance = this;

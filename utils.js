@@ -111,6 +111,8 @@ window.requestAnimFrame = (function(){
                 delatZ: 0,
                 pageX: originalEvent.pageX,
                 pageY: originalEvent.pageY,
+                clientX: originalEvent.clientX,
+                clientY: originalEvent.clientY,
                 preventDefault: function() {
                     originalEvent.preventDefault ?
                         originalEvent.preventDefault() :
@@ -134,3 +136,22 @@ window.requestAnimFrame = (function(){
     }
 
 })(window,document);
+
+/**
+ * Provides requestAnimationFrame in a cross browser way.
+ * @author paulirish / http://paulirish.com/
+ */
+if ( !window.requestAnimationFrame ) {
+    window.requestAnimationFrame = ( function() {
+
+        return window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame ||
+            window.oRequestAnimationFrame ||
+            window.msRequestAnimationFrame ||
+        function( /* function FrameRequestCallback */ callback,
+                  /* DOMElement Element */ element ) {
+            window.setTimeout( callback, 1000 / 60 );
+        };
+
+    } )();
+};

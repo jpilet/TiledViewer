@@ -20,11 +20,14 @@
     <canvas id="viewer" width="400" height="400" style="border:solid black 3px;">
     	Your browser sucks.
     </canvas>
+    <!--
     <canvas id="viewer2" width="400" height="400" style="border:solid black 3px;">
       Your browser sucks.
     </canvas>
+    -->
     <script>
     	InitializeTiledViewer(document.getElementById("viewer"));
+    	/*
     	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer2"), {
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    initialLocation: {x:0.5196633492226737, y:0.3519760172389177, scale:0.00041424200043671533},
@@ -34,6 +37,7 @@
     	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
     	    }
     	  });
+    	  */
     </script>
 </body>
 </html>

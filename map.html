@@ -2,11 +2,13 @@
 
 <head>
   <title>Map viewer</title>
-  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
   <style>
     html { height: 100%; }
-    body {margin: 0; width: 100%; height: 100%;}
-    canvas { width:99%; height:99%; }
+    body {margin: 0; width: 100%; height: 100%; overflow:hidden; }
+    #container { position:relative; width: 100%; height: 100%; }
+    #header { position: absolute; left: 5px; top: 5px; height:25px; }
+    canvas { width:99%; height:99%; position: absolute; top:30px;}
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
@@ -16,28 +18,46 @@
 </head>
 
 <body>
-    <h1>Map viewer</h1>
-    
-    <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.5196805836511373,y:0.351942668793237,scale:0.0006470628556339841});"
-    value="Vully"/>
-    <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.5,y:0.5,scale:0.99});"
-    value="Earth"/><br/>
-    <div id="location"></div>
+  <div id = "container">
+    <div id="header">    
+      <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.5196805836511373,y:0.351942668793237,scale:0.0006470628556339841});"
+      value="Vully"/>
+      <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.5,y:0.5,scale:0.99});"
+      value="Earth"/>
+      <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.29445498480399196,y:0.3758734901463495,scale:0.000023175396768770895});"
+      value="New York"/>
+      <!-- <span id="location"></span> -->
+    </div>
     <canvas id="viewer" width="400" height="400" style="border:solid black 3px;">
       Your browser sucks.
     </canvas>
-    <script>
+  </div>
+    <script>        
     	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer"), {
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    maxNumCachedTiles: 256,
     	    initialLocation: {x:0.5, y:0.5, scale:0.99},
     	    //initialLocation: {x:0.5196805836511373,y:0.351942668793237,scale:0.0006470628556339841},
     	    onLocationChange: function(canvasTilesRenderer) {
-    	      var location = canvasTilesRenderer.getLocation();
-    	      document.getElementById("location").innerHTML = 
-    	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+      	    var element = document.getElementById("location"); 
+            if (element) {
+              var location = canvasTilesRenderer.getLocation();
+              element.innerHTML =
+      	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+    	      }
     	    }
     	  });
+
+      var resize = function() {
+        var viewer = document.getElementById('viewer');
+        var container = document.getElementById('container');
+        var header = document.getElementById('header');
+        viewer.style.height = (container.offsetHeight - 5 - header.offsetTop) + 'px';
+        canvasTilesRenderer.refresh();
+      };
+      window.onresize = resize;
+      resize();
+      
     </script>
 </body>
 </html>
