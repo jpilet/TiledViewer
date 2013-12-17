@@ -11,7 +11,7 @@ function TiledViewer(element) {
 
   var tiledViewer = this;
   var draw = function(t) { tiledViewer.draw(element); };
-  this.pinchZoom = new PinchZoom(element, draw);
+  this.pinchZoom = new PinchZoom(element, draw, 555, 260);
   this.imageObj.onload = draw;  
 }
 

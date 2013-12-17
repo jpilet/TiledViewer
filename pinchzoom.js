@@ -2,10 +2,12 @@
  * @author Julien Pilet
  */
 
-function PinchZoom(element, transformChanged) {
+function PinchZoom(element, transformChanged, width, height) {
   this.ongoingTouches = {};
   this.transform = new AffineTransform();
   this.transformChanged = transformChanged;
+  this.worldWidth = width || 1;
+  this.worldHeight = height || 1;
   
   var t = this;
   var e = element;
@@ -30,8 +32,12 @@ PinchZoom.prototype.eventElement = function(event) {
 };
 
 PinchZoom.prototype.setTransform = function(transform) {
-  this.transform = new AffineTransform(transform);
-  
+  var newTransform = new AffineTransform(transform);
+  if (!this.checkAndApplyTransform(newTransform)) {
+    return;
+  }
+
+  // The transform has changed: ongoing gesture has to be reset.
   var viewerPos = Utils.eventPosInElementCoordinates(event, this.eventElement(event));
   if (this.ongoingTouches.mouse) {
     var viewerPos =  this.ongoingTouches.mouse.startViewerPos;
@@ -107,9 +113,7 @@ PinchZoom.prototype.handleStart = function(event) {
 PinchZoom.prototype.handleEnd = function(event) {
   // If one finger leaves the screen, we forget all finger positions. Thus, it
   // starts a new motion if some other fingers keep moving.
-	for (var i in this.ongoingTouches) {
-	  delete this.ongoingTouches[i];
-	}
+	this.ongoingTouches = {};
 };
 
 PinchZoom.prototype.handleMove = function(event) {
@@ -138,7 +142,8 @@ PinchZoom.prototype.handleMove = function(event) {
 
 PinchZoom.prototype.processConstraints = function(constraints) {
 	// Compute the transform that best fits the constraints
-	var T = this.transform.matrix;
+	var newTransform = new AffineTransform(this.transform.matrix);
+	var T = newTransform.matrix;
 	
 	if (constraints.length >= 2) {
 		// pinch -> zoom
@@ -167,9 +172,9 @@ PinchZoom.prototype.processConstraints = function(constraints) {
 		var AtB = [vx1*wx1 + vx2*wx2 + vy1*wy1 + vy2*wy2, vx1 + vx2, vy1 + vy2];
 		var r = Utils.multiply3x3MatrixWithVector(Ainv, AtB);
 		 
-		T[0] = T[4] = r[0];
-		T[2] = r[1];
-		T[5] = r[2];
+    T[0] = T[4] = r[0];
+    T[2] = r[1];
+    T[5] = r[2];    
 	} else if (constraints.length == 1) {
 		// scroll: Solve A* world + X = viewer
 		// -> X = viewer - A * world
@@ -177,8 +182,38 @@ PinchZoom.prototype.processConstraints = function(constraints) {
 		T[2] = c.viewer.x - (T[0] * c.world.x + T[1] * c.world.y);
 		T[5] = c.viewer.y - (T[3] * c.world.x + T[4] * c.world.y);
 	}
+	
   var tiledViewer = this;
   
+  this.checkAndApplyTransform(newTransform);
+};
+
+PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
+  var T = newTransform.matrix;
+
+  var boundScaleX = this.element.width / this.worldWidth;
+  var boundScaleY = this.element.height / this.worldHeight;
+  var scaleBound = Math.min(boundScaleX, boundScaleY);
+  var scale = T[0];
+  if (scale < scaleBound) {
+    scale = scaleBound;
+  }
+  T[0] = T[4] = scale;
+    
+  if (T[2] > 0) T[2] = 0;
+  if (T[5] > 0) T[5] = 0;    
+  
+  var bottomright = newTransform.transform(this.worldWidth, this.worldHeight);
+  if (bottomright.x < this.element.width) {
+    var center = (T[2] == 0 ? .5 : 1);
+    T[2] += center * (this.element.width - bottomright.x);      
+  }
+  if (bottomright.y < this.element.height) {
+    var center = (T[5] == 0 ? .5 : 1);
+    T[5] += center * (this.element.height - bottomright.y);      
+  }
+  
+  this.transform = newTransform;
   if (this.transformChanged) {
     this.transformChanged(this.transform);
   }
