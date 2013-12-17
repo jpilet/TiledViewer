@@ -51,10 +51,12 @@ this.Utils = {
 
   eventPosInElementCoordinates: function(event, element) {
     var rect = element.getBoundingClientRect();
-    return {
+    var r = {
       x: (event.clientX - rect.left) * (element.width / element.offsetWidth),
       y: (event.clientY - rect.top) * (element.height / element.offsetHeight)
-    };    
+    };
+    Utils.assert(!isNaN(r.x) && !isNaN(r.y));
+    return r;
   },
 };
 

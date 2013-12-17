@@ -96,6 +96,7 @@ PinchZoom.prototype.handleStart = function(event) {
 	var touches = event.changedTouches;
 	for (var i = 0; i < touches.length; i++) {
 		var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
+
 		this.ongoingTouches[touches[i].identifier] = {
 			startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 			startViewerPos: viewerPos,
@@ -104,20 +105,19 @@ PinchZoom.prototype.handleStart = function(event) {
 };
 	
 PinchZoom.prototype.handleEnd = function(event) {
-  var pinchZoom = this;
-	var touches = event.changedTouches;
-	for (var i = 0; i < touches.length; i++) {
-		Utils.assert(touches[i].identifier in this.ongoingTouches);
-		delete this.ongoingTouches[touches[i].identifier];
-	}	
+  // If one finger leaves the screen, we forget all finger positions. Thus, it
+  // starts a new motion if some other fingers keep moving.
+	for (var i in this.ongoingTouches) {
+	  delete this.ongoingTouches[i];
+	}
 };
 
 PinchZoom.prototype.handleMove = function(event) {
-	event.preventDefault();
-	var touches = event.touches;
-	var constraints = [];
-	for (var i = 0; i < touches.length; i++) {
-		if (!touches[i].identifier in this.ongoingTouches) {
+  event.preventDefault();
+  var touches = event.touches;
+  var constraints = [];
+  for (var i = 0; i < touches.length; i++) {
+		if (!this.ongoingTouches[touches[i].identifier]) {
 			// For some reason, we did not get the start event.
 			var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
 		  this.ongoingTouches[touches[i].identifier] = {
@@ -132,8 +132,8 @@ PinchZoom.prototype.handleMove = function(event) {
 			viewer: Utils.eventPosInElementCoordinates(touches[i], this.element),
 			world: touch.startWorldPos,
 		});
-	}
-	this.processConstraints(constraints);
+  }
+  this.processConstraints(constraints);
 };
 
 PinchZoom.prototype.processConstraints = function(constraints) {
