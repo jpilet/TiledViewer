@@ -8,6 +8,8 @@ function CanvasTilesRenderer(canvas, params) {
       return "http://a.tile.openstreetmap.org/" + scale + '/' + x + '/' + y + '.png';
     };
   }
+  this.params.width = this.params.width || 1;
+  this.params.height = this.params.height || 1;
   
   if (!this.params.maxNumCachedTiles) this.params.maxNumCachedTiles = 64;
   if (!this.params.maxSimultaneousLoads) this.params.maxSimultaneousLoads = 3;
@@ -38,15 +40,19 @@ function CanvasTilesRenderer(canvas, params) {
     if (t.inDraw) { return; }
     if (t.params.onLocationChange) { t.params.onLocationChange(t); }
     t.refresh();
-  });
+  },
+  this.params.width,
+  this.params.height);
   
   // We are ready, let's allow drawing.  
   this.inDraw = false;
+  
   if (params.initialLocation) {
     this.setLocation(params.initialLocation);
   } else {
-    this.setLocation({x:.5, y:.5, scale: 1});
+    this.setLocation({x: this.params.width / 2, y: this.params.height / 2, scale: this.params.width});
   }
+    
 }
 
 CanvasTilesRenderer.prototype.getLocation = function() {
@@ -100,6 +106,7 @@ CanvasTilesRenderer.prototype.draw = function() {
   var pinchZoom = this.pinchZoom;
   
   this.resizeCanvas();
+  pinchZoom.checkAndApplyTransform();
   
   this.drawLocation = this.getLocation();
 
@@ -176,23 +183,31 @@ CanvasTilesRenderer.prototype.draw = function() {
 CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context) {
   var zoom = 1 / (1 << scale);
   var left = tileX * zoom;
-  var right = (tileX + 1) * zoom;
   var top = tileY * zoom;
-  var bottom = (tileY + 1) * zoom;
+
+  if (left >= this.params.width || top >= this.params.height) {
+    return;
+  }
+
   var quarterPixel = .25 * this.drawLocation.scale / this.canvas.width;
-  
+    
   for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
     var upTileX = tileX >> upLevel;
     var upTileY = tileY >> upLevel;
     
     var tile = this.getTile(scale - upLevel, upTileX , upTileY, 1 - upLevel * .15);
-    if (tile && tile.image && tile.image.complete) {
+    if (tile && tile.image && tile.image.width > 0 && tile.image.height > 0) {
       var skipX = tileX - (upTileX << upLevel);
       var skipY = tileY - (upTileY << upLevel);
       var size = this.params.tileSize >> upLevel;
+      
+      var right = (tileX + tile.image.width / this.params.tileSize) * zoom;
+      var bottom = (tileY + tile.image.height / this.params.tileSize) * zoom;
+      
       context.drawImage(tile.image,
         skipX * size, skipY * size,
-        size, size,
+        Math.min(size, tile.image.width - skipX * size),
+        Math.min(size, tile.image.height - skipY * size),
         left - quarterPixel, top - quarterPixel,
         (right - left) + quarterPixel, (bottom - top) + quarterPixel);
       break;
@@ -201,7 +216,7 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
 };
 
 CanvasTilesRenderer.prototype.getTile = function(scale, x, y, priority) {
-  if (x < 0 || y < 0 || x >= (1 << scale) || y >= (1 << scale)) {
+  if (x < 0 || y < 0 || x >= (this.params.width * (1 << scale)) || y >= (this.params.height * (1 << scale))) {
     return undefined;
   }
 

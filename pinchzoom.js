@@ -189,6 +189,7 @@ PinchZoom.prototype.processConstraints = function(constraints) {
 };
 
 PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
+  newTransform = newTransform || this.transform;
   var T = newTransform.matrix;
 
   var boundScaleX = this.element.width / this.worldWidth;
@@ -213,8 +214,10 @@ PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
     T[5] += center * (this.element.height - bottomright.y);      
   }
   
-  this.transform = newTransform;
-  if (this.transformChanged) {
-    this.transformChanged(this.transform);
+  if (this.transform !== newTransform) {
+    this.transform = newTransform;
+    if (this.transformChanged) {
+      this.transformChanged(this.transform);
+    }
   }
 };

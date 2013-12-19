@@ -8,7 +8,7 @@
     body {margin: 0; width: 100%; height: 100%; overflow:hidden; }
     #container { position:relative; width: 100%; height: 100%; }
     #header { position: absolute; left: 5px; top: 5px; height:25px; }
-    canvas { width:99%; height:99%; position: absolute; top:30px;}
+    canvas { width:99%; height:99%; position: absolute; top:30px; }
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
@@ -36,8 +36,6 @@
     	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer"), {
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    maxNumCachedTiles: 256,
-    	    initialLocation: {x:0.5, y:0.5, scale:0.99},
-    	    //initialLocation: {x:0.5196805836511373,y:0.351942668793237,scale:0.0006470628556339841},
     	    onLocationChange: function(canvasTilesRenderer) {
       	    var element = document.getElementById("location"); 
             if (element) {
