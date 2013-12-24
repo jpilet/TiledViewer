@@ -55,6 +55,16 @@ PinchZoom.prototype.viewerPosFromWorldPos = function(x, y) {
   return this.transform.transform(x, y);
 };
 
+PinchZoom.prototype.isMoving = function() {
+    var count = 0;
+    for (var i in this.ongoingTouches) {
+        if (this.ongoingTouches[i]) {
+            ++count;
+        }
+    }
+    return count > 0;
+}
+
 PinchZoom.prototype.handleMouseDown = function(event) {
     var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
     this.ongoingTouches.mouse = {
@@ -113,7 +123,8 @@ PinchZoom.prototype.handleStart = function(event) {
 PinchZoom.prototype.handleEnd = function(event) {
   // If one finger leaves the screen, we forget all finger positions. Thus, it
   // starts a new motion if some other fingers keep moving.
-	this.ongoingTouches = {};
+  this.ongoingTouches = {};
+  this.handleMove(event);
 };
 
 PinchZoom.prototype.handleMove = function(event) {

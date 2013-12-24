@@ -4,7 +4,8 @@
   <title>Tiled Image viewer</title>
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <style>
-    body {margin: 0; overflow: hidden; width: 100%; height: 100%;}
+    body {margin: 0; overflow: hidden; }
+    html,body,canvas { width: 100%; height: 100%; }
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
@@ -14,10 +15,7 @@
 </head>
 
 <body>
-    <h1>Tiled image viewer</h1>
-    
-    <div id="location"></div>
-    <canvas id="viewer" width="400" height="400" style="border:solid black 3px;">
+    <canvas id="viewer">
     	Your browser sucks.
     </canvas>
     <!--

@@ -13,18 +13,27 @@ function CanvasTilesRenderer(canvas, params) {
   
   if (!this.params.maxNumCachedTiles) this.params.maxNumCachedTiles = 64;
   if (!this.params.maxSimultaneousLoads) this.params.maxSimultaneousLoads = 3;
+  this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 20;
   
   this.tiles = {};
   this.numLoading = 0;
   this.loadQueue = [];
+
+  this.canvasWidth = -1;
+  this.canvasHeight = -1;
+
+  if (params.debug) {
+      this.debug = function(msg) { console.log(msg); }
+  } else {
+      this.debug = function(msg) { };
+  }
 
   // Block drawing before we are ready.  
   this.inDraw = true;
   this.numDraw = 0;
   this.numCachedTiles = 0;
   this.disableResize = false;
-  
-  this.resizeCanvas();
+  this.lastRefreshRequest = -1;
   
   var t = this;
   var drawClosure = function() {
@@ -32,13 +41,20 @@ function CanvasTilesRenderer(canvas, params) {
     t.draw(canvas);
   };
   this.refresh = function() {
-    // For some reasons, some browsers do not like this requestAnimationFrame method.
-    // window.requestAnimationFrame(drawClosure);
-    drawClosure();
+    if (t.lastRefreshRequest == t.numDraw) {
+      return;
+    }
+    t.lastRefreshRequest = t.numDraw;
+
+    window.requestAnimationFrame(drawClosure);
   };
   this.pinchZoom = new PinchZoom(canvas, function() {
-    if (t.inDraw) { return; }
     if (t.params.onLocationChange) { t.params.onLocationChange(t); }
+    t.location = t.getLocation();
+    t.debug('location: w:' + canvas.width
+                + ' h:' + canvas.height
+                + ' x:'+t.location.x + ' y:'+t.location.y
+                +' s:'+t.location.scale);
     t.refresh();
   },
   this.params.width,
@@ -47,12 +63,12 @@ function CanvasTilesRenderer(canvas, params) {
   // We are ready, let's allow drawing.  
   this.inDraw = false;
   
-  if (params.initialLocation) {
-    this.setLocation(params.initialLocation);
-  } else {
-    this.setLocation({x: this.params.width / 2, y: this.params.height / 2, scale: this.params.width});
-  }
-    
+  this.location = params.initialLocation || {
+    x: this.params.width / 2,
+    y: this.params.height / 2,
+    scale: this.params.width
+  };
+  this.setLocation(this.location);
 }
 
 CanvasTilesRenderer.prototype.getLocation = function() {
@@ -79,16 +95,42 @@ CanvasTilesRenderer.prototype.resizeCanvas = function() {
   if (this.disableResize) {
     return;
   }
-  
-  var canvas = this.canvas;
-  var initialClientWidth = canvas.clientWidth;
-  var newWidth = canvas.clientWidth * (window.devicePixelRatio ? window.devicePixelRatio : 1);
-  var newHeight = canvas.clientHeight * (window.devicePixelRatio ? window.devicePixelRatio : 1);
 
-  if (newWidth != 0 && newHeight != 0 && newWidth != canvas.width || newHeight != canvas.height) {
-    canvas.width = newWidth;
-    canvas.height = newHeight;
+  var canvas = this.canvas;
+
+  // devicePixelRatio should tell us about the current zoom level.
+  var density = (this.params.forceDevicePixelRatio || window.devicePixelRatio || 1);
+
+  // On some browsers/devices, filling the full resolution canvas
+  // takes too long. During animations, we downsample the canvas
+  // to make it fast enough. When motion stops, we render the map
+  // at full resolution again.
+  var factor = (this.params.downsampleDuringMotion &&
+                this.pinchZoom.isMoving()) ?  density / 2 : density;
+
+  var initialClientWidth = canvas.clientWidth;
+  var initialClientHeight = canvas.clientHeight;
+
+  // Is it Math.floor or Math.round ? Who knows...
+  var newWidth = Math.floor(canvas.clientWidth * factor);
+  var newHeight = Math.floor(canvas.clientHeight * factor);
+
+  if (newWidth != 0 && newHeight != 0 && 
+         (Math.abs(canvas.width - newWidth) > 3 ||
+          Math.abs(canvas.height - newHeight) > 3)) {
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+  }
+
+  if (canvas.width != this.canvasWidth || canvas.height != this.canvasHeight) {
+      this.canvasWidth = canvas.width;
+      this.canvasHeight = canvas.height;
+
+      // We resized the canvas, but we want to express the same transform.
+      // Let's update the transform for the new size.
+      this.setLocation(this.location);
   }  
+  
   if (initialClientWidth != canvas.clientWidth) {
      // Canvas size on page should be set by CSS, not by canvas.width and canvas.height.
      // It seems it is not the case. Let's forget about this devicePixelRatio stuff.
@@ -102,14 +144,14 @@ CanvasTilesRenderer.prototype.draw = function() {
   }
   this.inDraw = true;
 
+  var startTimestamp = new Date().getTime();
+
   var canvas = this.canvas;
   var pinchZoom = this.pinchZoom;
   
   this.resizeCanvas();
   pinchZoom.checkAndApplyTransform();
   
-  this.drawLocation = this.getLocation();
-
   // Compute a bounding box of the viewer area in world coordinates.
   var cornersPix = [
     {x: 0, y: 0},
@@ -178,6 +220,20 @@ CanvasTilesRenderer.prototype.draw = function() {
 
   this.inDraw = false;
   ++this.numDraw;
+
+  var endTimestamp = new Date().getTime();
+  var renderingTime = (endTimestamp - startTimestamp);
+  if (renderingTime > (1000/this.params.downgradeIfSlowerFPS)) {
+      // If rendering is too slow, we degrade visual quality during motion,
+      // to make it faster.
+      this.params.downsampleDuringMotion = true;
+  }
+  this.debug('rendering time:' + renderingTime);
+
+  // Continuously animate while moving.
+  if (this.pinchZoom.isMoving()) {
+      this.refresh();
+  }
 };
 
 CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context) {
@@ -189,7 +245,7 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
     return;
   }
 
-  var quarterPixel = .25 * this.drawLocation.scale / this.canvas.width;
+  var quarterPixel = .25 * this.location.scale / this.canvas.width;
     
   for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
     var upTileX = tileX >> upLevel;
