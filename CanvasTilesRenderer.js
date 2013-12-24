@@ -252,7 +252,7 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
     var upTileY = tileY >> upLevel;
     
     var tile = this.getTile(scale - upLevel, upTileX , upTileY, 1 - upLevel * .15);
-    if (tile && tile.image && tile.image.width > 0 && tile.image.height > 0) {
+    if (tile && tile.image && tile.image.complete && tile.image.width > 0 && tile.image.height > 0) {
       var skipX = tileX - (upTileX << upLevel);
       var skipY = tileY - (upTileY << upLevel);
       var size = this.params.tileSize >> upLevel;
