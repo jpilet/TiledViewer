@@ -362,7 +362,9 @@ CanvasTilesRenderer.prototype.limitCacheSize = function() {
   // Build an array of tiles we may need to remove from cache  
   var cache = [];
   for (var key in this.tiles) {
-    if (this.tiles[key].image) {
+    var tile = this.tiles[key];
+    // We do not remove tiles that are currently displayed.
+    if (tile.image && tile.lastDrawRequest != this.numDraw) {
       cache.push(key);
     }
   }
