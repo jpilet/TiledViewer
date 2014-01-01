@@ -8,6 +8,7 @@ function PinchZoom(element, transformChanged, width, height) {
   this.transformChanged = transformChanged;
   this.worldWidth = width || 1;
   this.worldHeight = height || 1;
+  this.lastMouseDown = 0;
   
   var t = this;
   var e = element;
@@ -63,14 +64,34 @@ PinchZoom.prototype.isMoving = function() {
         }
     }
     return count > 0;
-}
+};
+
+PinchZoom.prototype.handleDoubleClic = function(viewerPos) {
+    var constraints = [{
+      viewer: viewerPos,
+      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+    }];
+  
+    this.transform.scale(2);
+    this.processConstraints(constraints);
+};
 
 PinchZoom.prototype.handleMouseDown = function(event) {
-    var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
+  var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
+
+  var now = new Date().getTime();
+  if ((now - this.lastMouseDown) < 100) {
+    // double clic: instant zoom.
+    this.handleDoubleClic(viewerPos);
+    this.ongoingTouches.mouse = undefined;
+  } else {
+    // simple clic - might be converted in a double clic later.
     this.ongoingTouches.mouse = {
       startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
       startViewerPos: viewerPos,
     };
+  }
+  this.lastMouseDown = now;
 };
 
 PinchZoom.prototype.handleMouseUp = function(event) {
@@ -107,17 +128,29 @@ PinchZoom.prototype.handleMouseWheel = function(event) {
 };
 
 PinchZoom.prototype.handleStart = function(event) {
-	event.preventDefault();
-	
-	var touches = event.changedTouches;
-	for (var i = 0; i < touches.length; i++) {
-		var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
+  event.preventDefault();
 
-		this.ongoingTouches[touches[i].identifier] = {
-			startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
-			startViewerPos: viewerPos,
-		};
-	}
+  // Detect double clic, single touch.
+  if (event.touches.length == 1) {
+    var now = new Date().getTime();
+    if ((now - this.lastMouseDown) < 100) {
+      // double clic.
+      var viewerPos = Utils.eventPosInElementCoordinates(
+          event.touches[0], this.element);
+      this.handleDoubleClic(viewerPos);
+    }
+    this.lastMouseDown = now;
+  }
+
+  var touches = event.changedTouches;
+  for (var i = 0; i < touches.length; i++) {
+    var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
+
+    this.ongoingTouches[touches[i].identifier] = {
+startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+               startViewerPos: viewerPos,
+    };
+  }
 };
 	
 PinchZoom.prototype.handleEnd = function(event) {
