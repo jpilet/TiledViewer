@@ -257,13 +257,16 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
       var skipY = tileY - (upTileY << upLevel);
       var size = this.params.tileSize >> upLevel;
       
-      var right = (tileX + tile.image.width / this.params.tileSize) * zoom;
-      var bottom = (tileY + tile.image.height / this.params.tileSize) * zoom;
+      var texCoordX = skipX * size;
+      var texCoordY = skipY * size;
+      var texWidth = Math.min(size, tile.image.width - skipX * size);
+      var texHeight = Math.min(size, tile.image.height - skipY * size);
+      
+      var right = (tileX + texWidth / size) * zoom;
+      var bottom = (tileY + texHeight / size) * zoom;
       
       context.drawImage(tile.image,
-        skipX * size, skipY * size,
-        Math.min(size, tile.image.width - skipX * size),
-        Math.min(size, tile.image.height - skipY * size),
+        texCoordX, texCoordY, texWidth, texHeight,
         left - quarterPixel, top - quarterPixel,
         (right - left) + quarterPixel, (bottom - top) + quarterPixel);
       break;
