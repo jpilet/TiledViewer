@@ -1,6 +1,25 @@
-function CanvasTilesRenderer(canvas, params) {
+// CanvasTilesRenderer.js - copyright Julien Pilet, 2013
+
+/** Construct a CanvasTilesRenderer object on a canvas.
+ *
+ * \param canvas the canvas element to render tiles to.
+ * \param url a function taking (scale,x,y) as arguments. Returns a tile URL.
+ *            default: openstreetmap.
+ * \param initialLocation the initial location (zoom and translation).
+ *                        See setLocation().
+ * \param tileSize the tileSize, in pixels. Default: 256.
+ * \param width the image width. Unit: number of tiles at level 0 (float OK).
+ * \param height image height. Unit: number of tiles at level 0.
+ * \param maxNumCachedTiles the maximum number of hidden tiles to keep in cache.
+ *                          default: 64.
+ * \param maxSimultaneousLoads maximum parallel loading operations. Default: 3.
+ * \param downgradeIfSlowerFPS If rendering falls below this framerate, degrade
+ *                             image quality during animation.
+ * \param debug if true, output debug info on console.
+ */
+function CanvasTilesRenderer(params) {
   this.params = (params != undefined ? params : {});
-  this.canvas = canvas;
+  this.canvas = params.canvas;
   
   if (!("tileSize" in this.params)) this.params.tileSize = 256;
   if (!("url" in this.params)) {
@@ -36,23 +55,11 @@ function CanvasTilesRenderer(canvas, params) {
   this.lastRefreshRequest = -1;
   
   var t = this;
-  var drawClosure = function() {
-    // Sets "this" to the correct object before calling draw.
-    t.draw(canvas);
-  };
-  this.refresh = function() {
-    if (t.lastRefreshRequest == t.numDraw) {
-      return;
-    }
-    t.lastRefreshRequest = t.numDraw;
-
-    window.requestAnimationFrame(drawClosure);
-  };
-  this.pinchZoom = new PinchZoom(canvas, function() {
+  this.pinchZoom = new PinchZoom(t.canvas, function() {
     if (t.params.onLocationChange) { t.params.onLocationChange(t); }
     t.location = t.getLocation();
-    t.debug('location: w:' + canvas.width
-                + ' h:' + canvas.height
+    t.debug('location: w:' + t.canvas.width
+                + ' h:' + t.canvas.height
                 + ' x:'+t.location.x + ' y:'+t.location.y
                 +' s:'+t.location.scale);
     t.refresh();
@@ -71,6 +78,13 @@ function CanvasTilesRenderer(canvas, params) {
   this.setLocation(this.location);
 }
 
+/** Get the current view location.
+ *
+ *  Returns an object containing:
+ *  x: the x coordinate currently in the center of the screen, in tile 0 size units.
+ *  y: the corresponding y coordinate.
+ *  scale: the viewport width, in "tile 0" units.
+ */
 CanvasTilesRenderer.prototype.getLocation = function() {
   var left = this.pinchZoom.worldPosFromViewerPos({x: 0, y:this.canvas.height / 2});
   var right = this.pinchZoom.worldPosFromViewerPos({x: this.canvas.width, y:this.canvas.height / 2});
@@ -82,6 +96,10 @@ CanvasTilesRenderer.prototype.getLocation = function() {
   };
 };
 
+/** Set the current location.
+ *
+ * \param location the location in the format returned by getLocation().
+ */
 CanvasTilesRenderer.prototype.setLocation = function(location) {
   var canvas = this.canvas;
   var constraints = [
@@ -89,6 +107,21 @@ CanvasTilesRenderer.prototype.setLocation = function(location) {
     { viewer: {x:canvas.width, y: canvas.height / 2}, world: {x:location.x + location.scale /2, y: location.y} },
   ];
   this.pinchZoom.processConstraints(constraints);  
+};
+
+/** Refresh the canvas.
+ *
+ * this method has to be called if the canvas element is resized.
+ * calling refresh mutliple times in a raw only causes 1 refresh to occur.
+ */
+CanvasTilesRenderer.prototype.refresh = function() {
+  var t = this;
+  if (t.lastRefreshRequest == t.numDraw) {
+    return;
+  }
+  t.lastRefreshRequest = t.numDraw;
+
+  window.requestAnimationFrame(function() { t.draw(t.canvas); });
 };
 
 CanvasTilesRenderer.prototype.resizeCanvas = function() {

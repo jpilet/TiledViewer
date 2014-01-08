@@ -33,7 +33,8 @@
     </canvas>
   </div>
     <script>        
-    	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer"), {
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+            canvas: document.getElementById("viewer"),
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    maxNumCachedTiles: 256,
     	    onLocationChange: function(canvasTilesRenderer) {
