@@ -9,6 +9,7 @@ function PinchZoom(element, transformChanged, width, height) {
   this.worldWidth = width || 1;
   this.worldHeight = height || 1;
   this.lastMouseDown = 0;
+  this.lastTouchDown = 0;
   
   var t = this;
   var e = element;
@@ -133,13 +134,14 @@ PinchZoom.prototype.handleStart = function(event) {
   // Detect double clic, single touch.
   if (event.touches.length == 1) {
     var now = new Date().getTime();
-    if ((now - this.lastMouseDown) < 100) {
-      // double clic.
+    var delta = (now - this.lastTouchDown);
+    if (delta < 300) {
+      // double tap.
       var viewerPos = Utils.eventPosInElementCoordinates(
           event.touches[0], this.element);
       this.handleDoubleClic(viewerPos);
     }
-    this.lastMouseDown = now;
+    this.lastTouchDown = now;
   }
 
   var touches = event.changedTouches;
@@ -181,7 +183,9 @@ PinchZoom.prototype.handleMove = function(event) {
 			world: touch.startWorldPos,
 		});
   }
-  this.processConstraints(constraints);
+  if (constraints.length > 0) {
+    this.processConstraints(constraints);
+  }
 };
 
 PinchZoom.prototype.processConstraints = function(constraints) {
