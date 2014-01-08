@@ -261,7 +261,14 @@ CanvasTilesRenderer.prototype.draw = function() {
       // to make it faster.
       this.params.downsampleDuringMotion = true;
   }
-  this.debug('rendering time:' + renderingTime);
+
+  if (this.params.debug) {
+    var debugLocation = this.getLocation();
+    this.debug('Draw at '
+               + debugLocation.x + ', ' + debugLocation.y +' scale: ' + debugLocation.scale
+               + ' rendering time:' + renderingTime
+               + ' w:' + canvas.width + ' h:' + canvas.height);
+  }
 
   // Continuously animate while moving.
   if (this.pinchZoom.isMoving()) {
