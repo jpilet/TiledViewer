@@ -10,6 +10,7 @@ function PinchZoom(element, transformChanged, width, height) {
   this.worldHeight = height || 1;
   this.lastMouseDown = 0;
   this.lastTouchDown = 0;
+  this.minScale = 0;
   
   var t = this;
   var e = element;
@@ -223,7 +224,26 @@ PinchZoom.prototype.processConstraints = function(constraints) {
     T[0] = T[4] = r[0];
     T[2] = r[1];
     T[5] = r[2];    
+
+    this.enforceConstraints(newTransform);
+
+    // If enforceConstraints changed scale, we need to reset translation.
+    var c = {
+      world: {
+        x: (constraints[0].world.x + constraints[1].world.x) / 2,
+        y: (constraints[0].world.y + constraints[1].world.y) / 2,
+      },
+      viewer: {
+        x: (constraints[0].viewer.x + constraints[1].viewer.x) / 2,
+        y: (constraints[0].viewer.y + constraints[1].viewer.y) / 2,
+    }};
+		T[2] = c.viewer.x - (T[0] * c.world.x + T[1] * c.world.y);
+		T[5] = c.viewer.y - (T[3] * c.world.x + T[4] * c.world.y);
+
 	} else if (constraints.length == 1) {
+    // Make sure the scale is within bounds.
+    this.enforceConstraints(newTransform);
+
 		// scroll: Solve A* world + X = viewer
 		// -> X = viewer - A * world
 		var c = constraints[0];
@@ -236,18 +256,29 @@ PinchZoom.prototype.processConstraints = function(constraints) {
   this.checkAndApplyTransform(newTransform);
 };
 
-PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
-  newTransform = newTransform || this.transform;
+PinchZoom.prototype.enforceConstraints = function (newTransform) {
   var T = newTransform.matrix;
 
   var boundScaleX = this.element.width / this.worldWidth;
   var boundScaleY = this.element.height / this.worldHeight;
   var scaleBound = Math.min(boundScaleX, boundScaleY);
+
   var scale = T[0];
+  var scaleFactor = 1.0;
   if (scale < scaleBound) {
-    scale = scaleBound;
+    scaleFactor = scaleBound / scale;
   }
-  T[0] = T[4] = scale;
+
+  if (this.minScale > 0) {
+      var maxScale = this.element.width / this.minScale;
+      if (scale > maxScale) {
+          scaleFactor = maxScale / scale;
+      }
+  }
+
+  T[0] = T[4] = scale * scaleFactor;
+  T[2] *= scaleFactor;
+  T[5] *= scaleFactor;
     
   if (T[2] > 0) T[2] = 0;
   if (T[5] > 0) T[5] = 0;    
@@ -261,7 +292,13 @@ PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
     var center = (T[5] == 0 ? .5 : 1);
     T[5] += center * (this.element.height - bottomright.y);      
   }
+};
   
+PinchZoom.prototype.checkAndApplyTransform = function (newTransform) {
+  newTransform = newTransform || this.transform;
+
+  this.enforceConstraints(newTransform);
+
   if (this.transform !== newTransform) {
     this.transform = newTransform;
     if (this.transformChanged) {

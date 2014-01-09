@@ -23,12 +23,15 @@
     </canvas>
   </div>
     <script>        
-    	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer"), {
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+          canvas: document.getElementById("viewer"),
           url: function(scale, x, y) { return "AYU-M0037-Ayutthay-NT-512/" + scale + "/" + x + "/" + y + ".jpg"; },
           width:0.694458,
           height:0.500000,
           tileSize: 512,
-    	    maxNumCachedTiles: 32,
+	  maxNumCachedTiles: 32,
+          debug: true,
+          minScale: .2,
     	  });
 
       var resize = function() {

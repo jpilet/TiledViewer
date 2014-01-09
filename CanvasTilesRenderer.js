@@ -29,6 +29,7 @@ function CanvasTilesRenderer(params) {
   }
   this.params.width = this.params.width || 1;
   this.params.height = this.params.height || 1;
+  this.params.minScale = this.params.minScale || 0;
   
   if (!this.params.maxNumCachedTiles) this.params.maxNumCachedTiles = 64;
   if (!this.params.maxSimultaneousLoads) this.params.maxSimultaneousLoads = 3;
@@ -66,6 +67,7 @@ function CanvasTilesRenderer(params) {
   },
   this.params.width,
   this.params.height);
+  this.pinchZoom.minScale = this.params.minScale;
   
   // We are ready, let's allow drawing.  
   this.inDraw = false;
