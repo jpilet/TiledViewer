@@ -8,7 +8,7 @@
     body {margin: 0; width: 100%; height: 100%; overflow:hidden; }
     #container { position:relative; width: 100%; height: 100%; }
     #header { position: absolute; left: 5px; top: 5px; height:25px; }
-    canvas { width:99%; height:99%; position: absolute; top:30px; }
+    canvas { width:99%; height:99%; position: absolute; top:60px; }
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
@@ -26,7 +26,8 @@
       value="Earth"/>
       <input type="button" onclick="canvasTilesRenderer.setLocation({x:0.29445498480399196,y:0.3758734901463495,scale:0.000023175396768770895});"
       value="New York"/>
-      <!-- <span id="location"></span> -->
+      <br/>
+      <span id="location"></span>
     </div>
     <canvas id="viewer" width="400" height="400" style="border:solid black 3px;">
       Your browser sucks.
