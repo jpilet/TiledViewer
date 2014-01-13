@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+project(TileGenerator)
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /opt/local/lib)
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+add_executable(tile_generator TileGenerator.cpp)
+target_link_libraries(tile_generator ${OpenCV_LIBS})
