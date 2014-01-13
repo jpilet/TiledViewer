@@ -1,3 +1,5 @@
+// TileGenerator - (c) 2014 Julien Pilet <julien.pilet@opticode.ch>
+
 #include <opencv2/opencv.hpp>
 #include <sstream>
 #include <stdio.h>
@@ -121,9 +123,9 @@ bool TileGenerator::generateTiles(Mat image, int level) const {
     }
 
     std::vector<int> qualityType;
-    qualityType.push_back(CV_IMWRITE_JPEG_QUALITY);
+    qualityType.push_back(cv::IMWRITE_JPEG_QUALITY);
     qualityType.push_back(jpegQuality_);
-    qualityType.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    qualityType.push_back(cv::IMWRITE_PNG_COMPRESSION);
     qualityType.push_back(pngCompression_);
 
     for (int x = 0; (x * tileSize_) < image.cols; ++x) {
