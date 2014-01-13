@@ -200,11 +200,11 @@ CanvasTilesRenderer.prototype.draw = function() {
   }
   var bboxTopLeft = cornersWorld.reduce(
     function(a,b) { return {x: Math.min(a.x, b.x), y: Math.min(a.y, b.y)}; },
-    {x:1, y:1});
+    cornersWorld[0]);
     
   var bboxBottomRight = cornersWorld.reduce(
     function(a,b) { return {x: Math.max(a.x, b.x), y: Math.max(a.y, b.y)}; },
-    {x:0, y:0});
+    cornersWorld[0]);
     
   // Compute the scale level
   var numTiles = canvas.width / this.params.tileSize;
@@ -225,17 +225,29 @@ CanvasTilesRenderer.prototype.draw = function() {
   context.save();
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  pinchZoom.transform.canvasSetTransform(context);
-  
   Utils.assert(firstTileY != undefined);
   
+  var zoom = 1.0 / (1 << scale);
+  var tileGeometry = {
+    origin: pinchZoom.viewerPosFromWorldPos(firstTileX * zoom,
+                                            firstTileY * zoom),
+    delta: pinchZoom.viewerPosFromWorldPos((firstTileX + 1) * zoom,
+                                           (firstTileY + 1) * zoom),
+    firstTileX: firstTileX,
+    firstTileY: firstTileY
+  };
+  // We address canvas pixels in integer coordinates to avoid
+  // inconsistencies across browsers.
+  tileGeometry.delta.x = Math.round(tileGeometry.delta.x - tileGeometry.origin.x);
+  tileGeometry.delta.y = Math.round(tileGeometry.delta.y - tileGeometry.origin.y);
+  tileGeometry.origin.x = Math.round(tileGeometry.origin.x);
+  tileGeometry.origin.y = Math.round(tileGeometry.origin.y);
+
   for (var tileY = firstTileY; tileY <= lastTileY; ++tileY) {
     for (var tileX = firstTileX; tileX <= lastTileX; ++tileX) {
-      this.renderTile(scale, tileX, tileY, context);
+      this.renderTile(scale, tileX, tileY, context, tileGeometry);
     }
   }
-  
-  context.restore();
   
   if (0) {
     // Draw mouse position on canvas for debugging purpose
@@ -278,17 +290,16 @@ CanvasTilesRenderer.prototype.draw = function() {
   }
 };
 
-CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context) {
-  var zoom = 1 / (1 << scale);
-  var left = tileX * zoom;
-  var top = tileY * zoom;
+CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context, tileGeometry) {
+  var left = tileGeometry.origin.x
+      + tileGeometry.delta.x * (tileX - tileGeometry.firstTileX);
+  var top = tileGeometry.origin.y
+      + tileGeometry.delta.y * (tileY - tileGeometry.firstTileY);
 
-  if (left >= this.params.width || top >= this.params.height) {
+  if (left >= this.canvas.width || top >= this.canvas.height) {
     return;
   }
 
-  var quarterPixel = .25 * this.location.scale / this.canvas.width;
-    
   for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
     var upTileX = tileX >> upLevel;
     var upTileY = tileY >> upLevel;
@@ -304,13 +315,12 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
       var texWidth = Math.min(size, tile.image.width - skipX * size);
       var texHeight = Math.min(size, tile.image.height - skipY * size);
       
-      var right = (tileX + texWidth / size) * zoom;
-      var bottom = (tileY + texHeight / size) * zoom;
+      var width = tileGeometry.delta.x * (texWidth / size);
+      var height = tileGeometry.delta.y * (texHeight / size);
       
       context.drawImage(tile.image,
         texCoordX, texCoordY, texWidth, texHeight,
-        left - quarterPixel, top - quarterPixel,
-        (right - left) + quarterPixel, (bottom - top) + quarterPixel);
+        left, top, width, height);
       break;
     }
   }
