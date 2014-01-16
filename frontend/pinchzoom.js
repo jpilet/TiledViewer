@@ -10,6 +10,7 @@ function PinchZoom(element, transformChanged, width, height) {
   this.worldHeight = height || 1;
   this.lastMouseDown = 0;
   this.lastTouchDown = 0;
+  this.lastTouchDownPos = {x:-1, y:-1};
   this.minScale = 0;
   
   var t = this;
@@ -138,13 +139,15 @@ PinchZoom.prototype.handleStart = function(event) {
   if (event.touches.length == 1) {
     var now = new Date().getTime();
     var delta = (now - this.lastTouchDown);
-    if (delta < 300) {
-      // double tap.
-      var viewerPos = Utils.eventPosInElementCoordinates(
-          event.touches[0], this.element);
+    var viewerPos = Utils.eventPosInElementCoordinates(
+        event.touches[0], this.element);
+    var dist = Utils.distance(viewerPos, this.lastTouchDownPos);
+    // double tap ?
+    if (delta < 300 && dist < 100) {
       this.handleDoubleClic(viewerPos);
     }
     this.lastTouchDown = now;
+    this.lastTouchDownPos = viewerPos;
   }
 
   var touches = event.changedTouches;
