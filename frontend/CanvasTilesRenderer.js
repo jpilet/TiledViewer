@@ -59,10 +59,12 @@ function CanvasTilesRenderer(params) {
   this.pinchZoom = new PinchZoom(t.canvas, function() {
     if (t.params.onLocationChange) { t.params.onLocationChange(t); }
     t.location = t.getLocation();
-    t.debug('location: w:' + t.canvas.width
-                + ' h:' + t.canvas.height
-                + ' x:'+t.location.x + ' y:'+t.location.y
-                +' s:'+t.location.scale);
+    if (t.params.debug) {
+      t.debug('location: w:' + t.canvas.width
+              + ' h:' + t.canvas.height
+              + ' x:'+t.location.x + ' y:'+t.location.y
+              +' s:'+t.location.scale);
+    }
     t.refresh();
   },
   this.params.width,
@@ -166,10 +168,11 @@ CanvasTilesRenderer.prototype.resizeCanvas = function() {
       this.setLocation(this.location);
   }  
   
-  if (initialClientWidth != canvas.clientWidth) {
+  if (initialClientWidth != canvas.clientWidth || initialClientHeight != canvas.clientHeight) {
      // Canvas size on page should be set by CSS, not by canvas.width and canvas.height.
      // It seems it is not the case. Let's forget about this devicePixelRatio stuff.
      this.disableResize = true;  
+     this.debug('Disabling resize :(');
   }  
 };
 
@@ -215,15 +218,15 @@ CanvasTilesRenderer.prototype.draw = function() {
   var getTileX = function(unitX) { return  Math.floor(unitX * (1 << scale)); };
   var getTileY = function(unitY) { return  getTileX(unitY); };
   
-  var firstTileX = getTileX(bboxTopLeft.x);
-  var firstTileY = getTileY(bboxTopLeft.y);
-  var lastTileX = getTileX(bboxBottomRight.x);
-  var lastTileY = getTileY(bboxBottomRight.y);
+  var firstTileX = getTileX(Math.max(0, bboxTopLeft.x));
+  var firstTileY = getTileY(Math.max(0, bboxTopLeft.y));
+  var lastTileX = getTileX(Math.min(this.params.width, bboxBottomRight.x));
+  var lastTileY = getTileY(Math.min(this.params.height, bboxBottomRight.y));
   
   // Clear the canvas
   var context = canvas.getContext('2d');
-  context.save();
-  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  this.clearBorder(context);
 
   Utils.assert(firstTileY != undefined);
   
@@ -283,11 +286,6 @@ CanvasTilesRenderer.prototype.draw = function() {
                + ' rendering time:' + renderingTime
                + ' w:' + canvas.width + ' h:' + canvas.height);
   }
-
-  // Continuously animate while moving.
-  if (this.pinchZoom.isMoving()) {
-      this.refresh();
-  }
 };
 
 CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context, tileGeometry) {
@@ -318,19 +316,19 @@ CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context
       var width = tileGeometry.delta.x * (texWidth / size);
       var height = tileGeometry.delta.y * (texHeight / size);
       
-      context.drawImage(tile.image,
-        texCoordX, texCoordY, texWidth, texHeight,
-        left, top, width, height);
-      break;
+      try {
+          context.drawImage(tile.image,
+            texCoordX, texCoordY, texWidth, texHeight,
+            left, top, width, height);
+      } catch (e) {
+          this.debug('drawImage failed: ' + e.message);
+      }
+      return;
     }
   }
 };
 
 CanvasTilesRenderer.prototype.getTile = function(scale, x, y, priority) {
-  if (x < 0 || y < 0 || x >= (this.params.width * (1 << scale)) || y >= (this.params.height * (1 << scale))) {
-    return undefined;
-  }
-
   var key = scale + "," + x + "," + y;
   
   if (key in this.tiles) {
@@ -387,7 +385,9 @@ CanvasTilesRenderer.prototype.processQueue = function() {
           t.numLoading--;
           t.numCachedTiles++;
           query.tile.state = "loaded";
-          t.draw();
+          if (!t.pinchZoom.isMoving()) {
+            t.refresh();
+          }
         };
         image.onerror = function() {
           t.numLoading--;
@@ -434,3 +434,28 @@ CanvasTilesRenderer.prototype.limitCacheSize = function() {
   }
 };
 
+CanvasTilesRenderer.prototype.clearBorder = function(context) {
+  var canvas = this.canvas;
+
+  var topLeft = this.pinchZoom.viewerPosFromWorldPos(0, 0);
+  var bottomRight = this.pinchZoom.viewerPosFromWorldPos(this.params.width,
+                                               this.params.height);
+
+  context.fillStyle = 'white';
+  if (topLeft.x > 0) {
+    context.fillRect(0, 0, Math.floor(topLeft.x), canvas.height);
+  }
+
+  if (topLeft.y > 0) {
+    context.fillRect(0, 0, canvas.width, Math.floor(topLeft.y));
+  }
+
+  if (bottomRight.x < canvas.width) {
+    context.fillRect(bottomRight.x, 0,
+                      canvas.width - bottomRight.x, canvas.height);
+  }
+  if (bottomRight.y < canvas.height) {
+    context.fillRect(0, bottomRight.y,
+                      canvas.width, canvas.height - bottomRight.y);
+  }
+};

@@ -5,6 +5,19 @@ this.Utils = {
     }
   },
   
+  objectToString: function(o) {
+    if (typeof o === 'object') {
+      var str = '{';
+      for (var i in o) {
+        str += i + ': ' + Utils.objectToString(o[i]) + ',';
+      }
+      str += '}';
+      return str;
+    } else {
+      return '' + o;
+    }
+  },
+
   invert3x3Matrix: function(a) {
     var a00 = a[0], a01 = a[1], a02 = a[2],
         a10 = a[3], a11 = a[4], a12 = a[5],

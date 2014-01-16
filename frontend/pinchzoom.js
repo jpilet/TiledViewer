@@ -16,6 +16,7 @@ function PinchZoom(element, transformChanged, width, height) {
   var e = element;
   e.addEventListener("touchstart", function(event) { t.handleStart(event); }, false);
   e.addEventListener("touchend", function(event) { t.handleEnd(event); }, false);
+  e.addEventListener("touchcancel", function(event) { t.handleEnd(event); }, false);
   e.addEventListener("touchmove", function(event) { t.handleMove(event); }, false);
   e.addEventListener("mousedown", function(event) { t.handleMouseDown(event); }, false);
   e.addEventListener("mousemove", function(event) { t.handleMouseMove(event); }, false);
@@ -60,6 +61,7 @@ PinchZoom.prototype.viewerPosFromWorldPos = function(x, y) {
 
 PinchZoom.prototype.isMoving = function() {
     var count = 0;
+
     for (var i in this.ongoingTouches) {
         if (this.ongoingTouches[i]) {
             ++count;
@@ -157,6 +159,7 @@ startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 };
 	
 PinchZoom.prototype.handleEnd = function(event) {
+  event.preventDefault();
   // If one finger leaves the screen, we forget all finger positions. Thus, it
   // starts a new motion if some other fingers keep moving.
   this.ongoingTouches = {};
