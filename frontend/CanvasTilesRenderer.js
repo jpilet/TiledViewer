@@ -70,7 +70,7 @@ function CanvasTilesRenderer(params) {
   this.params.width,
   this.params.height);
   this.pinchZoom.minScale = this.params.minScale;
-  
+
   // We are ready, let's allow drawing.  
   this.inDraw = false;
   
@@ -268,6 +268,21 @@ CanvasTilesRenderer.prototype.draw = function() {
   // control memory usage.
   this.limitCacheSize();
 
+  // Rendering resolution is decreased during motion.
+  // To render high-res after a motion, we detect motion end
+  // by setting and postponing a timeout during motion.
+  var moving = this.pinchZoom.isMoving();
+  if (moving) {
+    if (this.moveEndTimeout != undefined) {
+      window.clearTimeout(this.moveEndTimeout);
+    }
+    var t = this;
+    this.moveEndTimeout = setTimeout(function() {
+      t.moveEndTimeout = undefined;
+      t.refresh();
+    }, 100);
+  }
+  
   this.inDraw = false;
   ++this.numDraw;
 

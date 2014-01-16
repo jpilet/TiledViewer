@@ -190,9 +190,7 @@ PinchZoom.prototype.handleMove = function(event) {
 			world: touch.startWorldPos,
 		});
   }
-  if (constraints.length > 0) {
-    this.processConstraints(constraints);
-  }
+  this.processConstraints(constraints);
 };
 
 PinchZoom.prototype.processConstraints = function(constraints) {
