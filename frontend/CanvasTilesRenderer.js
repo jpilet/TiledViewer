@@ -357,7 +357,14 @@ CanvasTilesRenderer.prototype.getTile = function(scale, x, y, priority) {
     return tile;
   }
   
-  var url = this.params.url(scale, x, y);
+  if (typeof(this.params.url) == "function") {
+    var url = this.params.url(scale, x, y);
+  } else {
+    var url = this.params.url
+      .replace("$x", '' + x)
+      .replace("$y", '' + y)
+      .replace("$scale", '' + scale);
+  }
   return this.queueTileRequest(key, url, priority);
 };
 
