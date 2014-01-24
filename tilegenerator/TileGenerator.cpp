@@ -37,9 +37,11 @@ class TileGenerator {
     bool downsampleBlur_;
 };
 
-bool createDirectory(const string& dir) {
+bool createDirectory(const string& dir, bool verbose = true) {
     if (mkdir(dir.c_str(), 0777) != 0) {
-        perror(dir.c_str());
+        if (verbose) {
+            perror(dir.c_str());
+        }
         return false;
     }
     return true;
@@ -118,9 +120,7 @@ string TileGenerator::pathForTile(int level, int x, int y) const {
 
 bool TileGenerator::generateTiles(Mat image, int level) const {
     string levelPath = pathForLevel(level);
-    if (!createDirectory(levelPath)) {
-        return false;
-    }
+    createDirectory(levelPath, false);
 
     std::vector<int> qualityType;
     qualityType.push_back(cv::IMWRITE_JPEG_QUALITY);
@@ -129,9 +129,7 @@ bool TileGenerator::generateTiles(Mat image, int level) const {
     qualityType.push_back(pngCompression_);
 
     for (int x = 0; (x * tileSize_) < image.cols; ++x) {
-        if (!createDirectory(pathForX(level, x))) {
-            return false;
-        }
+        createDirectory(pathForX(level, x), false);
 
         for (int y = 0; (y * tileSize_) < image.rows; ++y) {
             int width = std::min(tileSize_, image.cols - x * tileSize_);
