@@ -7,7 +7,9 @@ window.addEventListener("load", function load(event){
 
 var MapHtmlInterface = {
   paramNames: ["url", "width", "height", "debug", "minScale", "tileSize",
-               "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS"],
+               "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS",
+               "initialLocation", "onLocationChange"],
+  stringParamNames: {"url": true},
 
   init: function() {
     var maps = document.querySelectorAll("[data-map-url]");
@@ -25,18 +27,29 @@ var MapHtmlInterface = {
 
     var params = {
       "canvas": canvas,
-      "onLocationChange": function(canvasRenderer) {
-        MapHtmlInterface.placeMarks(container, canvasRenderer);
-      }
     };
     var attr = function(name) {
       var attributeName = "data-map-" + name;
       if (container.hasAttribute(attributeName)) {
         params[name] = container.getAttribute(attributeName);
+        if (!(name in MapHtmlInterface.stringParamNames)) {
+           eval("params[name] = (" + params[name] + ');');
+        }
       }
     }
     for (var i in MapHtmlInterface.paramNames) {
       attr(MapHtmlInterface.paramNames[i]);
+    }
+    if (typeof(params.onLocationChange) == "function") {
+      var userCallback = params.onLocationChange;
+      params.onLocationChange = function(canvasRenderer) {
+        MapHtmlInterface.placeMarks(container, canvasRenderer);
+        userCallback(canvasRenderer);
+      }
+    } else {
+      params.onLocationChange = function(canvasRenderer) {
+        MapHtmlInterface.placeMarks(container, canvasRenderer);
+      }
     }
     var canvasTilesRenderer = new CanvasTilesRenderer(params);
 
