@@ -219,7 +219,7 @@ CanvasTilesRenderer.prototype.draw = function() {
   // Compute the scale level
   var numTiles = canvas.width / this.params.tileSize;
   var targetUnitPerTile = (bboxBottomRight.x - bboxTopLeft.x) / numTiles;
-  var scale = Math.max(0, Math.floor(- Math.log(targetUnitPerTile) / Math.LN2));
+  var scale = Math.max(0, Math.ceil(- Math.log(targetUnitPerTile) / Math.LN2));
   var actualUnitPerTile = 1 / (1 << scale);
 
   var getTileX = function(unitX) { return  Math.floor(unitX * (1 << scale)); };
