@@ -20,6 +20,7 @@
 function CanvasTilesRenderer(params) {
   this.params = (params != undefined ? params : {});
   this.canvas = params.canvas;
+  this.canvas.canvasTilesRenderer = this;
   
   if (!("tileSize" in this.params)) this.params.tileSize = 256;
   if (!("url" in this.params)) {
@@ -106,9 +107,15 @@ CanvasTilesRenderer.prototype.getLocation = function() {
  */
 CanvasTilesRenderer.prototype.setLocation = function(location) {
   var canvas = this.canvas;
+  var ratio = [
+    ('vx' in location ? location['vx'] : .5),
+    ('vy' in location ? location['vy'] : .5)
+  ];
+  var x_pos = canvas.width * ratio[0];
+  var y_pos = canvas.height * ratio[1];
   var constraints = [
-    { viewer: {x:0, y: canvas.height / 2}, world: {x:location.x - location.scale /2, y: location.y} },
-    { viewer: {x:canvas.width, y: canvas.height / 2}, world: {x:location.x + location.scale /2, y: location.y} },
+    { viewer: {x: x_pos - canvas.width / 2, y: y_pos}, world: {x:location.x - location.scale /2, y: location.y} },
+    { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} },
   ];
   this.pinchZoom.processConstraints(constraints);  
 };
