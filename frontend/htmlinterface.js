@@ -27,11 +27,11 @@ var MapHtmlInterface = {
 
     var params = {
       "canvas": canvas,
-      geoConv: function(lat,lon) {
+      geoConv: function(lon,lat) {
 	  // default to OSM converter.
 	  return [
 	      ((lon + 180.0) / 360.0),
-	      ((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0)
+	      ((1.0 - Math.log( Math.tan(lat * Math.PI/180.0) + 1.0 / Math.cos(lat * Math.PI/180.0)) / Math.PI) / 2.0)
 	  ];
       },
     }
@@ -88,7 +88,7 @@ var MapHtmlInterface = {
       var child = container.childNodes[i];
       if ("hasAttribute" in child && (
 		  child.hasAttribute("data-map-pos")
-		  || child.hasAttribute("data-map-geo")) {
+		  || child.hasAttribute("data-map-geo"))) {
 	if (child.hasAttribute("data-map-pos")) {
 	    var pos = splitArrayArg(child.getAttribute("data-map-pos"));
 	} else {
