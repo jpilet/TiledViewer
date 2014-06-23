@@ -8,7 +8,7 @@ window.addEventListener("load", function load(event){
 var MapHtmlInterface = {
   paramNames: ["url", "width", "height", "debug", "minScale", "tileSize",
                "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS",
-               "initialLocation", "onLocationChange"],
+               "initialLocation", "onLocationChange", "geoConv"],
   stringParamNames: {"url": true},
 
   init: function() {
@@ -27,7 +27,14 @@ var MapHtmlInterface = {
 
     var params = {
       "canvas": canvas,
-    };
+      geoConv: function(lat,lon) {
+	  // default to OSM converter.
+	  return [
+	      ((lon + 180.0) / 360.0),
+	      ((1.0 - log( tan(lat * M_PI/180.0) + 1.0 / cos(lat * M_PI/180.0)) / M_PI) / 2.0)
+	  ];
+      },
+    }
     var attr = function(name) {
       var attributeName = "data-map-" + name;
       if (container.hasAttribute(attributeName)) {
@@ -79,8 +86,16 @@ var MapHtmlInterface = {
 
     for (var i = 0; i < container.childNodes.length; ++i) {
       var child = container.childNodes[i];
-      if ("hasAttribute" in child && child.hasAttribute("data-map-pos")) {
-        var pos = splitArrayArg(child.getAttribute("data-map-pos"));
+      if ("hasAttribute" in child && (
+		  child.hasAttribute("data-map-pos")
+		  || child.hasAttribute("data-map-geo")) {
+	if (child.hasAttribute("data-map-pos")) {
+	    var pos = splitArrayArg(child.getAttribute("data-map-pos"));
+	} else {
+	    var geopos = splitArrayArg(child.getAttribute("data-map-geo"));
+	    var pos = canvasTilesRenderer.params.geoConv(geopos[0], geopos[1]);
+	}
+
         if (pos.length != 2) {
           throw("data-map-pos syntax is: \"x,y\", for example: data-map-pos=\".1,.2\"");
         }
