@@ -64,6 +64,7 @@ var MapHtmlInterface = {
         "resize", function() {
           canvasTilesRenderer.refresh();
         }, false);
+    return canvasTilesRenderer;
   },
 
   placeMarks: function(container, canvasTilesRenderer) {
