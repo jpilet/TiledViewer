@@ -58,8 +58,8 @@ function CanvasTilesRenderer(params) {
   
   var t = this;
   this.pinchZoom = new PinchZoom(t.canvas, function() {
-    if (t.params.onLocationChange) { t.params.onLocationChange(t); }
     t.location = t.getLocation();
+    if (t.params.onLocationChange) { t.params.onLocationChange(t); }
     if (t.params.debug) {
       t.debug('location: w:' + t.canvas.width
               + ' h:' + t.canvas.height
@@ -75,12 +75,12 @@ function CanvasTilesRenderer(params) {
   // We are ready, let's allow drawing.  
   this.inDraw = false;
   
-  this.location = params.initialLocation || {
-    x: this.params.width / 2,
-    y: this.params.height / 2,
-    scale: this.params.width
+  var location = params.initialLocation || {
+    x: (this.params.width || 1) / 2,
+    y: (this.params.height || 1) / 2,
+    scale: (this.params.width || 1)
   };
-  this.setLocation(this.location);
+  this.setLocation(location);
 }
 
 /** Get the current view location.
@@ -106,10 +106,13 @@ CanvasTilesRenderer.prototype.getLocation = function() {
  * \param location the location in the format returned by getLocation().
  */
 CanvasTilesRenderer.prototype.setLocation = function(location) {
+  if (isNaN(location.x) || isNaN(location.y) || isNaN(location.scale)) {
+    throw('invalid location');
+  }
   var canvas = this.canvas;
   var ratio = [
-    ('vx' in location ? location['vx'] : .5),
-    ('vy' in location ? location['vy'] : .5)
+    location['vx'] || .5,
+    location['vy'] || .5,
   ];
   var x_pos = canvas.width * ratio[0];
   var y_pos = canvas.height * ratio[1];
@@ -117,6 +120,7 @@ CanvasTilesRenderer.prototype.setLocation = function(location) {
     { viewer: {x: x_pos - canvas.width / 2, y: y_pos}, world: {x:location.x - location.scale /2, y: location.y} },
     { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} },
   ];
+  this.location = location;
   this.pinchZoom.processConstraints(constraints);  
 };
 
