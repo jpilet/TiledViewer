@@ -85,6 +85,15 @@ var MapHtmlInterface = {
       }
     }
 
+    var processFloatAttribute = function (elem, attrName, callback) {
+      var name = "data-map-" + attrName;
+      if (elem.hasAttribute(name)) {
+          callback(parseFloat(elem.getAttribute(name)));
+        }
+    };
+
+    var loc = canvasTilesRenderer.getLocation();
+
     for (var i = 0; i < container.childNodes.length; ++i) {
       var child = container.childNodes[i];
       if ("hasAttribute" in child && (
@@ -121,18 +130,28 @@ var MapHtmlInterface = {
         child.style.left = Math.round(topLeft.x) + "px";
         child.style.top = Math.round(topLeft.y) + "px";
 
-        if (child.hasAttribute("data-map-width")) {
-          var width = parseFloat(child.getAttribute("data-map-width"));
+        processFloatAttribute(child, "width", function(width) {
           var topRight = worldToElement(worldPos.x + width, worldPos.y);
           child.style.width = (topRight.x - topLeft.x) + "px";
-        }
+        });
 
-        if (child.hasAttribute("data-map-height")) {
-          var height = parseFloat(child.getAttribute("data-map-height"));
+        processFloatAttribute(child, "height", function(height) {
           var bottomLeft = worldToElement(worldPos.x, worldPos.y + height);
           child.style.height = (bottomLeft.y - topLeft.y) + "px";
-        }
-          
+        });
+
+        var display = "block";
+        processFloatAttribute(child, "min-scale", function(minScale) {
+          if (loc.scale < minScale) {
+            display = "none";
+          }
+        });
+        processFloatAttribute(child, "max-scale", function(maxScale) {
+          if (loc.scale > maxScale) {
+            display = "none";
+          }
+        });
+        child.style.display = display;
       }
     }
   },
