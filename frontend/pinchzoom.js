@@ -74,7 +74,7 @@ PinchZoom.prototype.isMoving = function() {
 PinchZoom.prototype.handleDoubleClic = function(viewerPos) {
     var constraints = [{
       viewer: viewerPos,
-      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y)
     }];
   
     this.transform.scale(2);
@@ -93,7 +93,7 @@ PinchZoom.prototype.handleMouseDown = function(event) {
     // simple clic - might be converted in a double clic later.
     this.ongoingTouches.mouse = {
       startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
-      startViewerPos: viewerPos,
+      startViewerPos: viewerPos
     };
   }
   this.lastMouseDown = now;
@@ -112,7 +112,7 @@ PinchZoom.prototype.handleMouseMove = function(event) {
     this.ongoingTouches.mouse.currentViewerPos = Utils.eventPosInElementCoordinates(event, this.element);
     var constraints = [{
       viewer: this.ongoingTouches.mouse.currentViewerPos,
-      world: this.ongoingTouches.mouse.startWorldPos,
+      world: this.ongoingTouches.mouse.startWorldPos
     }];
     this.processConstraints(constraints);
   }
@@ -124,7 +124,7 @@ PinchZoom.prototype.handleMouseWheel = function(event) {
   var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
   var constraints = [{
       viewer: viewerPos,
-      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
+      world: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y)
   }];
   var scaleFactor = 1.0 - Math.max(-.2, Math.min(.2, event.deltaY / 20.0));
   
@@ -156,7 +156,7 @@ PinchZoom.prototype.handleStart = function(event) {
 
     this.ongoingTouches[touches[i].identifier] = {
 startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
-               startViewerPos: viewerPos,
+               startViewerPos: viewerPos
     };
   }
 };
@@ -179,7 +179,7 @@ PinchZoom.prototype.handleMove = function(event) {
 			var viewerPos = Utils.eventPosInElementCoordinates(touches[i], this.element);
 		  this.ongoingTouches[touches[i].identifier] = {
 			  startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
-			  startViewerPos: viewerPos,
+			  startViewerPos: viewerPos
 		  };
 		}
 		var touch = this.ongoingTouches[touches[i].identifier];
@@ -187,7 +187,7 @@ PinchZoom.prototype.handleMove = function(event) {
 		// Every touch is a constraint
 		constraints.push({
 			viewer: Utils.eventPosInElementCoordinates(touches[i], this.element),
-			world: touch.startWorldPos,
+			world: touch.startWorldPos
 		});
   }
   this.processConstraints(constraints);
@@ -235,11 +235,11 @@ PinchZoom.prototype.processConstraints = function(constraints) {
     var c = {
       world: {
         x: (constraints[0].world.x + constraints[1].world.x) / 2,
-        y: (constraints[0].world.y + constraints[1].world.y) / 2,
+        y: (constraints[0].world.y + constraints[1].world.y) / 2
       },
       viewer: {
         x: (constraints[0].viewer.x + constraints[1].viewer.x) / 2,
-        y: (constraints[0].viewer.y + constraints[1].viewer.y) / 2,
+        y: (constraints[0].viewer.y + constraints[1].viewer.y) / 2
     }};
 		T[2] = c.viewer.x - (T[0] * c.world.x + T[1] * c.world.y);
 		T[5] = c.viewer.y - (T[3] * c.world.x + T[4] * c.world.y);

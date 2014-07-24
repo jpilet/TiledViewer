@@ -70,7 +70,7 @@ this.Utils = {
     };
     Utils.assert(!isNaN(r.x) && !isNaN(r.y));
     return r;
-  },
+  }
 };
 
 // shim layer with setTimeout fallback

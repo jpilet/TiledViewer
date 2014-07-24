@@ -112,13 +112,13 @@ CanvasTilesRenderer.prototype.setLocation = function(location) {
   var canvas = this.canvas;
   var ratio = [
     location['vx'] || .5,
-    location['vy'] || .5,
+    location['vy'] || .5
   ];
   var x_pos = canvas.width * ratio[0];
   var y_pos = canvas.height * ratio[1];
   var constraints = [
     { viewer: {x: x_pos - canvas.width / 2, y: y_pos}, world: {x:location.x - location.scale /2, y: location.y} },
-    { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} },
+    { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} }
   ];
   this.location = location;
   this.pinchZoom.processConstraints(constraints);  
@@ -206,7 +206,7 @@ CanvasTilesRenderer.prototype.draw = function() {
     {x: 0, y: 0},
     {x: canvas.width, y: 0},
     {x: canvas.width, y: canvas.height},
-    {x: 0, y: canvas.height},
+    {x: 0, y: canvas.height}
   ];
   var cornersWorld = [];
   for (var i = 0; i < 4; ++i) {

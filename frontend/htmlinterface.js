@@ -33,7 +33,7 @@ var MapHtmlInterface = {
 	      ((lon + 180.0) / 360.0),
 	      ((1.0 - Math.log( Math.tan(lat * Math.PI/180.0) + 1.0 / Math.cos(lat * Math.PI/180.0)) / Math.PI) / 2.0)
 	  ];
-      },
+      }
     }
     var attr = function(name) {
       var attributeName = "data-map-" + name;
@@ -123,7 +123,7 @@ var MapHtmlInterface = {
 
         var topLeft = {
           x: anchorPos.x - anchor.x * child.offsetWidth,
-          y: anchorPos.y - anchor.y * child.offsetHeight,
+          y: anchorPos.y - anchor.y * child.offsetHeight
         };
 
         child.style.position = "absolute";
@@ -154,5 +154,5 @@ var MapHtmlInterface = {
         child.style.display = display;
       }
     }
-  },
+  }
 };

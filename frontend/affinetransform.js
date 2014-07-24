@@ -14,7 +14,7 @@ AffineTransform.prototype.transform = function (x_, y_) {
   
   return {
     x: this.matrix[0] * x + this.matrix[1] * y + this.matrix[2],
-    y: this.matrix[3] * x + this.matrix[4] * y + this.matrix[5],
+    y: this.matrix[3] * x + this.matrix[4] * y + this.matrix[5]
   };
 };
 
@@ -35,7 +35,7 @@ AffineTransform.prototype.inverseTransform = function (x_, y_) {
   var v = y - this.matrix[5];
   return {
     x: (d * u - b * v) * invdet,
-    y: (-c * u + a * v) * invdet, 
+    y: (-c * u + a * v) * invdet
   };  
 };
 
