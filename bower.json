@@ -1,0 +1,15 @@
+{
+  "name": "TiledViewer",
+  "version": "1.0.0",
+  "main": [
+    "frontend/utils.js",
+    "frontend/affinetransform.js",
+    "frontend/pinchzoom.js",
+    "frontend/CanvasTilesRenderer.js",
+    "frontend/htmlinterface.js"
+  ],
+  "ignore": [
+    ".*",
+    "tilegenerator"
+  ]
+}
