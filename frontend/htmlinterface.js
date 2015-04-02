@@ -140,7 +140,7 @@ var MapHtmlInterface = {
           child.style.height = (bottomLeft.y - topLeft.y) + "px";
         });
 
-        var display = "block";
+        var display = undefined;
         processFloatAttribute(child, "min-scale", function(minScale) {
           if (loc.scale < minScale) {
             display = "none";
