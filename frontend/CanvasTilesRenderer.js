@@ -220,8 +220,11 @@ CanvasTilesRenderer.prototype.draw = function() {
     function(a,b) { return {x: Math.max(a.x, b.x), y: Math.max(a.y, b.y)}; },
     cornersWorld[0]);
     
+  // devicePixelRatio should tell us about the current zoom level.
+  var density = (this.params.forceDevicePixelRatio || window.devicePixelRatio || 1);
+
   // Compute the scale level
-  var numTiles = canvas.width / this.params.tileSize;
+  var numTiles = (canvas.width / density) / this.params.tileSize;
   var targetUnitPerTile = (bboxBottomRight.x - bboxTopLeft.x) / numTiles;
   var scale = Math.max(0, Math.ceil(- Math.log(targetUnitPerTile) / Math.LN2));
   var actualUnitPerTile = 1 / (1 << scale);
