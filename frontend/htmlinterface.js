@@ -61,7 +61,7 @@ var MapHtmlInterface = {
     var canvasTilesRenderer = new CanvasTilesRenderer(params);
 
     canvasTilesRenderer.resizeListener = function() {
-      canvasTilesRenderer.refres();
+      canvasTilesRenderer.refresh();
     };
 
     window.addEventListener(
@@ -73,7 +73,7 @@ var MapHtmlInterface = {
   },
 
   destroy: function(renderer) {
-    window.removeEventListener(renderer.resizeListener);
+    window.removeEventListener("resize", renderer.resizeListener);
     renderer.container.removeChild(renderer.params.canvas);
     for (var i in renderer) {
       delete renderer[i];
