@@ -26,7 +26,7 @@ var MapHtmlInterface = {
     container.insertBefore(canvas, container.childNodes[0]);
 
     var params = {
-      "canvas": canvas,
+      canvas: canvas,
       geoConv: function(lon,lat) {
 	  // default to OSM converter.
 	  return [
@@ -60,11 +60,24 @@ var MapHtmlInterface = {
     }
     var canvasTilesRenderer = new CanvasTilesRenderer(params);
 
+    canvasTilesRenderer.resizeListener = function() {
+      canvasTilesRenderer.refres();
+    };
+
     window.addEventListener(
-        "resize", function() {
-          canvasTilesRenderer.refresh();
-        }, false);
+        "resize", canvasTilesRenderer.resizeListener, false);
+
+    canvasTilesRenderer.container = container;
+
     return canvasTilesRenderer;
+  },
+
+  destroy: function(renderer) {
+    window.removeEventListener(renderer.resizeListener);
+    renderer.container.removeChild(renderer.params.canvas);
+    for (var i in renderer) {
+      delete renderer[i];
+    }
   },
 
   placeMarks: function(container, canvasTilesRenderer) {
