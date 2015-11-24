@@ -12,16 +12,19 @@
   <script src="affinetransform.js"></script>
   <script src="pinchzoom.js"></script>
   <script src="CanvasTilesRenderer.js"></script>
-  <script src="tiledviewer.js"></script>
+  <script src="TileLayer.js"></script>
+  <script src="VectorTileLayer.js"></script>
 </head>
 
 <body>
     <canvas id="viewer">
     	Your browser sucks.
     </canvas>
+    <div id="location"></div>
     <script>
     	//InitializeTiledViewer(document.getElementById("viewer"));
-    	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer"), {
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+            canvas: document.getElementById("viewer"),
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    initialLocation: {x:0.5196633492226737, y:0.3519760172389177, scale:0.00041424200043671533},
     	    onLocationChange: function(canvasTilesRenderer) {
@@ -31,6 +34,5 @@
     	    }
     	  });
     </script>
-    <div id="location"></div>
 </body>
 </html>

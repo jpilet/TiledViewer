@@ -1,5 +1,6 @@
 #!/bin/bash
 
-cat \
-utils.js affinetransform.js pinchzoom.js CanvasTilesRenderer.js htmlinterface.js \
-    | jsmin > mapviewer.min.js
+FILES="utils.js affinetransform.js pinchzoom.js CanvasTilesRenderer.js htmlinterface.js TileLayer.js VectorTileLayer.js"
+
+cat $FILES | jsmin > mapviewer.min.js
+cat $FILES > mapviewer.js
