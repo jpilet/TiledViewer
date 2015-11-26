@@ -6,7 +6,9 @@
     "frontend/affinetransform.js",
     "frontend/pinchzoom.js",
     "frontend/CanvasTilesRenderer.js",
-    "frontend/htmlinterface.js"
+    "frontend/htmlinterface.js",
+    "frontend/TileLayer.js",
+    "frontend/VectorTileLayer.js"
   ],
   "ignore": [
     ".*",
