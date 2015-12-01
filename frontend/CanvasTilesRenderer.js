@@ -29,8 +29,7 @@ function CanvasTilesRenderer(params) {
   this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 20;
   
   this.layers = [
-    new TileLayer(params, this),
-    new VectorTileLayer(params, this)
+    new TileLayer(params, this)
   ];
 
   this.canvasWidth = -1;
@@ -76,6 +75,11 @@ function CanvasTilesRenderer(params) {
   };
   this.setLocation(location);
 }
+
+CanvasTilesRenderer.prototype.addLayer = function(layer) {
+  this.layers.push(layer);
+  this.refreshIfNotMoving();
+};
 
 /** Get the current view location.
  *
