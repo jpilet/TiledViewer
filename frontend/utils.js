@@ -87,9 +87,10 @@ this.Utils = {
   latLonToWorld: function(coord) {
     var lon = coord[0];
     var lat = coord[1] * Math.PI / 180;
-    return [
-      (lon + 180) / 360,
-      ((1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2)];
+    return {
+      x: (lon + 180) / 360,
+      y: ((1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2)
+    };
   }
 };
 
