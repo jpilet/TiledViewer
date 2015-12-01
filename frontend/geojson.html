@@ -1,0 +1,117 @@
+<!doctype html>
+
+<head>
+  <title>Tiled Image viewer</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <style>
+    body {margin: 0; overflow: hidden; }
+    html,body { width: 100%; height: 100%; }
+    canvas {width: 100%; height: 80%;}
+  </style>
+  <script src="utils.js"></script>
+  <script src="affinetransform.js"></script>
+  <script src="pinchzoom.js"></script>
+  <script src="CanvasTilesRenderer.js"></script>
+  <script src="TileLayer.js"></script>
+  <script src="POILayer.js"></script>
+</head>
+
+<body>
+    <canvas id="viewer">
+    	Your browser is too old.
+    </canvas>
+    <div id="location"></div>
+    <script>
+
+var geojson = 
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "NameLocal": "Blauwbrug",
+        "NameEN": "Blauwbrug (Blue Bridge)",
+        "NameDE": "Blauwbrug (Blaue Brücke)",
+        "NameFR": "Blauwbrug (Pont bleu)",
+        "CategoryID": 12,
+        "SubCategoryID": 62,
+        "Category": "Architecture",
+        "SubCategory": "19th century"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 4.900905, 52.366326 ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NameLocal": "Canal Tour",
+        "NameEN": "Canal Tour",
+        "NameDE": "Grachtenrundfahrt",
+        "NameFR": "Tour des canaux",
+        "CategoryID": 11,
+        "SubCategoryID": 25,
+        "Category": "Viewpoint",
+        "SubCategory": "Other"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 4.802361, 52.423277 ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NameLocal": "Centraal Station",
+        "NameEN": "Centraal Station",
+        "NameDE": "Centraal Station",
+        "NameFR": "Centraal Station",
+        "CategoryID": 1,
+        "SubCategoryID": 75,
+        "Category": "Urban",
+        "SubCategory": "Railway station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 4.900482, 52.379057 ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "NameLocal": "Concertgebouw",
+        "NameEN": "Concertgebouw",
+        "NameDE": "Concertgebouw",
+        "NameFR": "Concertgebouw",
+        "CategoryID": 4,
+        "SubCategoryID": 93,
+        "Category": "Culture",
+        "SubCategory": "Theatre / Concert hall / Opera"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [ 4.879153, 52.356263 ]
+      }
+    }
+  ]
+};
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+            canvas: document.getElementById("viewer"),
+    	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
+    	    initialLocation: {x:0.5136229387648525,y:0.32859961404591626,scale:0.00014809229409828983},
+    	    onLocationChange: function(canvasTilesRenderer) {
+    	      var location = canvasTilesRenderer.getLocation();
+    	      document.getElementById("location").innerHTML = 
+    	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+    	    }
+    	  });
+        var poiLayer = new POILayer({
+          renderer: canvasTilesRenderer,
+          geojson: geojson
+        });
+
+    </script>
+</body>
+</html>
