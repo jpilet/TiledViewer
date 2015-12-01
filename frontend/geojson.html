@@ -107,9 +107,19 @@ var geojson =
     	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
     	    }
     	  });
+
         var poiLayer = new POILayer({
           renderer: canvasTilesRenderer,
-          geojson: geojson
+          geojson: geojson,
+          onFeatureClic: function(feature, pos) {
+            forEachFeature(geojson, function(f) {
+               if (f.fillStyle) {
+                 delete f.fillStyle
+               }
+            });
+            feature.fillStyle = "#00CC00";
+            canvasTilesRenderer.refresh();
+          }
         });
 
     </script>
