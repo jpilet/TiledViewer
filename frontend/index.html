@@ -5,28 +5,26 @@
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <style>
     body {margin: 0; overflow: hidden; }
-    html,body,canvas { width: 100%; height: 100%; }
+    html,body { width: 100%; height: 100%; }
+    canvas {width: 100%; height: 80%;}
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
   <script src="pinchzoom.js"></script>
   <script src="CanvasTilesRenderer.js"></script>
-  <script src="tiledviewer.js"></script>
+  <script src="TileLayer.js"></script>
+  <script src="VectorTileLayer.js"></script>
 </head>
 
 <body>
     <canvas id="viewer">
     	Your browser sucks.
     </canvas>
-    <!--
-    <canvas id="viewer2" width="400" height="400" style="border:solid black 3px;">
-      Your browser sucks.
-    </canvas>
-    -->
+    <div id="location"></div>
     <script>
-    	InitializeTiledViewer(document.getElementById("viewer"));
-    	/*
-    	var canvasTilesRenderer = new CanvasTilesRenderer(document.getElementById("viewer2"), {
+    	//InitializeTiledViewer(document.getElementById("viewer"));
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+            canvas: document.getElementById("viewer"),
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
     	    initialLocation: {x:0.5196633492226737, y:0.3519760172389177, scale:0.00041424200043671533},
     	    onLocationChange: function(canvasTilesRenderer) {
@@ -35,7 +33,6 @@
     	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
     	    }
     	  });
-    	  */
     </script>
 </body>
 </html>

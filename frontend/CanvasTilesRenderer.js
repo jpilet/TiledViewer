@@ -22,23 +22,16 @@ function CanvasTilesRenderer(params) {
   this.canvas = params.canvas;
   this.canvas.canvasTilesRenderer = this;
   
-  if (!("tileSize" in this.params)) this.params.tileSize = 256;
-  if (!("url" in this.params)) {
-    this.params.url = function(scale, x, y) {
-      return "http://a.tile.openstreetmap.org/" + scale + '/' + x + '/' + y + '.png';
-    };
-  }
   this.params.width = this.params.width || 1;
   this.params.height = this.params.height || 1;
   this.params.minScale = this.params.minScale || 0;
   
-  if (!this.params.maxNumCachedTiles) this.params.maxNumCachedTiles = 64;
-  if (!this.params.maxSimultaneousLoads) this.params.maxSimultaneousLoads = 3;
   this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 20;
   
-  this.tiles = {};
-  this.numLoading = 0;
-  this.loadQueue = [];
+  this.layers = [
+    new TileLayer(params, this),
+    new VectorTileLayer(params, this)
+  ];
 
   this.canvasWidth = -1;
   this.canvasHeight = -1;
@@ -52,7 +45,6 @@ function CanvasTilesRenderer(params) {
   // Block drawing before we are ready.  
   this.inDraw = true;
   this.numDraw = 0;
-  this.numCachedTiles = 0;
   this.disableResize = false;
   this.lastRefreshRequest = -1;
   
@@ -75,6 +67,8 @@ function CanvasTilesRenderer(params) {
   // We are ready, let's allow drawing.  
   this.inDraw = false;
   
+  this.pinchZoom.onClic = function(pos) { };
+
   var location = params.initialLocation || {
     x: (this.params.width || 1) / 2,
     y: (this.params.height || 1) / 2,
@@ -112,13 +106,13 @@ CanvasTilesRenderer.prototype.setLocation = function(location) {
   var canvas = this.canvas;
   var ratio = [
     location['vx'] || .5,
-    location['vy'] || .5
+    location['vy'] || .5,
   ];
   var x_pos = canvas.width * ratio[0];
   var y_pos = canvas.height * ratio[1];
   var constraints = [
     { viewer: {x: x_pos - canvas.width / 2, y: y_pos}, world: {x:location.x - location.scale /2, y: location.y} },
-    { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} }
+    { viewer: {x: x_pos + canvas.width / 2, y: y_pos}, world: {x:location.x + location.scale /2, y: location.y} },
   ];
   this.location = location;
   this.pinchZoom.processConstraints(constraints);  
@@ -139,7 +133,7 @@ CanvasTilesRenderer.prototype.refresh = function() {
   window.requestAnimationFrame(function() { t.draw(t.canvas); });
 };
 
-CanvasTilesRenderer.prototype.resizeCanvas = function() {
+CanvasTilesRenderer.prototype.resizeCanvas = function(width, height) {
   if (this.disableResize) {
     return;
   }
@@ -160,14 +154,15 @@ CanvasTilesRenderer.prototype.resizeCanvas = function() {
   var initialClientHeight = canvas.clientHeight;
 
   // Is it Math.floor or Math.round ? Who knows...
-  var newWidth = Math.floor(canvas.clientWidth * factor);
-  var newHeight = Math.floor(canvas.clientHeight * factor);
+  var newWidth = width || Math.floor(canvas.clientWidth * factor);
+  var newHeight = height || Math.floor(canvas.clientHeight * factor);
 
   if (newWidth != 0 && newHeight != 0 && 
          (Math.abs(canvas.width - newWidth) > 3 ||
           Math.abs(canvas.height - newHeight) > 3)) {
       canvas.width = newWidth;
       canvas.height = newHeight;
+      this.pixelRatio = factor;
   }
 
   if (canvas.width != this.canvasWidth || canvas.height != this.canvasHeight) {
@@ -179,7 +174,9 @@ CanvasTilesRenderer.prototype.resizeCanvas = function() {
       this.setLocation(this.location);
   }  
   
-  if (initialClientWidth != canvas.clientWidth || initialClientHeight != canvas.clientHeight) {
+  if (width == undefined && height == undefined
+      && (initialClientWidth != canvas.clientWidth
+          || initialClientHeight != canvas.clientHeight)) {
      // Canvas size on page should be set by CSS, not by canvas.width and canvas.height.
      // It seems it is not the case. Let's forget about this devicePixelRatio stuff.
      this.disableResize = true;  
@@ -206,7 +203,7 @@ CanvasTilesRenderer.prototype.draw = function() {
     {x: 0, y: 0},
     {x: canvas.width, y: 0},
     {x: canvas.width, y: canvas.height},
-    {x: 0, y: canvas.height}
+    {x: 0, y: canvas.height},
   ];
   var cornersWorld = [];
   for (var i = 0; i < 4; ++i) {
@@ -220,67 +217,14 @@ CanvasTilesRenderer.prototype.draw = function() {
     function(a,b) { return {x: Math.max(a.x, b.x), y: Math.max(a.y, b.y)}; },
     cornersWorld[0]);
     
-  // devicePixelRatio should tell us about the current zoom level.
-  var density = (this.params.forceDevicePixelRatio || window.devicePixelRatio || 1);
-
-  // Compute the scale level
-  var numTiles = (canvas.width / density) / this.params.tileSize;
-  var targetUnitPerTile = (bboxBottomRight.x - bboxTopLeft.x) / numTiles;
-  var scale = Math.max(0, Math.ceil(- Math.log(targetUnitPerTile) / Math.LN2));
-  var actualUnitPerTile = 1 / (1 << scale);
-
-  var getTileX = function(unitX) { return  Math.floor(unitX * (1 << scale)); };
-  var getTileY = function(unitY) { return  getTileX(unitY); };
-  
-  var firstTileX = getTileX(Math.max(0, bboxTopLeft.x));
-  var firstTileY = getTileY(Math.max(0, bboxTopLeft.y));
-  var lastTileX = getTileX(Math.min(this.params.width, bboxBottomRight.x));
-  var lastTileY = getTileY(Math.min(this.params.height, bboxBottomRight.y));
-  
   // Clear the canvas
   var context = canvas.getContext('2d');
 
   this.clearBorder(context);
 
-  Utils.assert(firstTileY != undefined);
-  
-  var zoom = 1.0 / (1 << scale);
-  var tileGeometry = {
-    origin: pinchZoom.viewerPosFromWorldPos(firstTileX * zoom,
-                                            firstTileY * zoom),
-    delta: pinchZoom.viewerPosFromWorldPos((firstTileX + 1) * zoom,
-                                           (firstTileY + 1) * zoom),
-    firstTileX: firstTileX,
-    firstTileY: firstTileY
-  };
-  // We address canvas pixels in integer coordinates to avoid
-  // inconsistencies across browsers.
-  tileGeometry.delta.x = Math.round(tileGeometry.delta.x - tileGeometry.origin.x);
-  tileGeometry.delta.y = Math.round(tileGeometry.delta.y - tileGeometry.origin.y);
-  tileGeometry.origin.x = Math.round(tileGeometry.origin.x);
-  tileGeometry.origin.y = Math.round(tileGeometry.origin.y);
-
-  for (var tileY = firstTileY; tileY <= lastTileY; ++tileY) {
-    for (var tileX = firstTileX; tileX <= lastTileX; ++tileX) {
-      this.renderTile(scale, tileX, tileY, context, tileGeometry);
-    }
+  for (var i in this.layers) {
+    this.layers[i].draw(canvas, pinchZoom, bboxTopLeft, bboxBottomRight);
   }
-  
-  if (0) {
-    // Draw mouse position on canvas for debugging purpose
-    if (this.pinchZoom.ongoingTouches.mouse && this.pinchZoom.ongoingTouches.mouse.currentViewerPos) {
-      var pos = this.pinchZoom.ongoingTouches.mouse.currentViewerPos;
-      context.beginPath();
-        context.arc(pos.x, pos.y, 20, 0, 2 * Math.PI, false);
-        context.fillStyle = 'green';
-        context.fill();
-    }
-  }
-  
-  this.processQueue();
-
-  // control memory usage.
-  this.limitCacheSize();
 
   // Rendering resolution is decreased during motion.
   // To render high-res after a motion, we detect motion end
@@ -317,158 +261,6 @@ CanvasTilesRenderer.prototype.draw = function() {
   }
 };
 
-CanvasTilesRenderer.prototype.renderTile = function(scale, tileX, tileY, context, tileGeometry) {
-  var left = tileGeometry.origin.x
-      + tileGeometry.delta.x * (tileX - tileGeometry.firstTileX);
-  var top = tileGeometry.origin.y
-      + tileGeometry.delta.y * (tileY - tileGeometry.firstTileY);
-
-  if (left >= this.canvas.width || top >= this.canvas.height) {
-    return;
-  }
-
-  for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
-    var upTileX = tileX >> upLevel;
-    var upTileY = tileY >> upLevel;
-    
-    var tile = this.getTile(scale - upLevel, upTileX , upTileY, 1 - upLevel * .15);
-    if (tile && tile.image && tile.image.complete && tile.image.width > 0 && tile.image.height > 0) {
-      var skipX = tileX - (upTileX << upLevel);
-      var skipY = tileY - (upTileY << upLevel);
-      var size = this.params.tileSize >> upLevel;
-      
-      var texCoordX = skipX * size;
-      var texCoordY = skipY * size;
-      var texWidth = Math.min(size, tile.image.width - skipX * size);
-      var texHeight = Math.min(size, tile.image.height - skipY * size);
-      
-      var width = tileGeometry.delta.x * (texWidth / size);
-      var height = tileGeometry.delta.y * (texHeight / size);
-      
-      try {
-          context.drawImage(tile.image,
-            texCoordX, texCoordY, texWidth, texHeight,
-            left, top, width, height);
-      } catch (e) {
-          this.debug('drawImage failed: ' + e.message);
-      }
-      return;
-    }
-  }
-};
-
-CanvasTilesRenderer.prototype.getTile = function(scale, x, y, priority) {
-  var key = scale + "," + x + "," + y;
-  
-  if (key in this.tiles) {
-    var tile = this.tiles[key];
-    if (tile.lastDrawRequest == this.numDraw) {
-      tile.priority += priority;
-    } else {
-      tile.lastDrawRequest = this.numDraw;
-      tile.priority = priority;
-    }
-    return tile;
-  }
-  
-  if (typeof(this.params.url) == "function") {
-    var url = this.params.url(scale, x, y);
-  } else {
-    var url = this.params.url
-      .replace("$x", '' + x)
-      .replace("$y", '' + y)
-      .replace("$scale", '' + scale);
-  }
-  return this.queueTileRequest(key, url, priority);
-};
-
-CanvasTilesRenderer.prototype.queueTileRequest = function(key, url, priority) {
-  var tile = { lastDrawRequest: this.numDraw, priority: priority, state: "queue" };
-  Utils.assert(tile.priority != undefined);
-  this.loadQueue.push({key: key, url: url, tile: tile});
-  this.tiles[key] = tile;
-  return tile;
-};
-
-CanvasTilesRenderer.prototype.processQueue = function() {
-  var queue = this.loadQueue;
-  
-  // Prioritize loading
-  if (this.numLoading < this.params.maxSimultaneousLoads && queue.length > 0) {
-    this.loadQueue.sort(function(a, b) {
-      if (a.tile.lastDrawRequest == b.tile.lastDrawRequest) {
-        return a.tile.priority - b.tile.priority;
-      }
-      return a.tile.lastDrawRequest - b.tile.lastDrawRequest;
-    });
-  }
-  while (this.numLoading < this.params.maxSimultaneousLoads && queue.length > 0) {  
-    var query = this.loadQueue.pop();
-    
-    // Check if the tile is still required.
-    if ((this.numDraw - query.tile.lastDrawRequest) < 3) {
-      this.numLoading++;
-        
-      var image = new Image();
-      image.src = query.url;
-      query.tile.state = "loading";
-      query.tile.image = image;
-      
-      // Force the creation of a new scope to make sure
-      // a new closure is created for every "query" object. 
-      var f = (function(t, image, query) {
-        image.onload = function() { 
-          t.numLoading--;
-          t.numCachedTiles++;
-          query.tile.state = "loaded";
-          if (!t.pinchZoom.isMoving()) {
-            t.refresh();
-          }
-        };
-        image.onerror = function() {
-          t.numLoading--;
-          query.tile.state = "failed";
-          delete query.tile.image;
-          console.log('Failed to load: ' + query.url);
-          t.processQueue();
-        };  
-      })(this, image, query);
-      
-    } else {
-      // There's no need to load this tile, it is not required anymore.
-      delete this.tiles[query.key];
-    }
-  }
-};
-
-CanvasTilesRenderer.prototype.limitCacheSize = function() {
-  if (this.numCachedTiles <= this.params.maxNumCachedTiles) {
-    // The cache is small enough.
-    return;
-  }
-
-  // Build an array of tiles we may need to remove from cache  
-  var cache = [];
-  for (var key in this.tiles) {
-    var tile = this.tiles[key];
-    // We do not remove tiles that are currently displayed.
-    if (tile.image && tile.lastDrawRequest != this.numDraw) {
-      cache.push(key);
-    }
-  }
-  
-  // Sort it: oldest request first.
-  var t = this;  
-  cache.sort(function(a,b) { return t.tiles[a].lastDrawRequest - t.tiles[b].lastDrawRequest; });
-  
-  // Remove old tiles.
-  var numToRemove = cache.length - this.params.maxNumCachedTiles;
-  for (var i = 0; i < numToRemove; ++i) {
-    var key = cache[i];
-    delete this.tiles[key];
-    this.numCachedTiles--;
-  }
-};
 
 CanvasTilesRenderer.prototype.clearBorder = function(context) {
   var canvas = this.canvas;
@@ -495,3 +287,9 @@ CanvasTilesRenderer.prototype.clearBorder = function(context) {
                       canvas.width, canvas.height - bottomRight.y);
   }
 };
+
+CanvasTilesRenderer.prototype.refreshIfNotMoving = function() {
+  if (!this.pinchZoom.isMoving()) {
+    this.refresh();
+  }
+}

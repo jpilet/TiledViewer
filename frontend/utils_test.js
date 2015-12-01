@@ -1,6 +1,7 @@
 var fs = require('fs');
 
 window = { };
+document = undefined;
 eval(fs.readFileSync('utils.js')+'');
 
 var Utils = this.Utils;
