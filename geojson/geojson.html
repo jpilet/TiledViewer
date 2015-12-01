@@ -8,12 +8,12 @@
     html,body { width: 100%; height: 100%; }
     canvas {width: 100%; height: 80%;}
   </style>
-  <script src="utils.js"></script>
-  <script src="affinetransform.js"></script>
-  <script src="pinchzoom.js"></script>
-  <script src="CanvasTilesRenderer.js"></script>
-  <script src="TileLayer.js"></script>
-  <script src="POILayer.js"></script>
+  <script src="../frontend/utils.js"></script>
+  <script src="../frontend/affinetransform.js"></script>
+  <script src="../frontend/pinchzoom.js"></script>
+  <script src="../frontend/CanvasTilesRenderer.js"></script>
+  <script src="../frontend/TileLayer.js"></script>
+  <script src="../frontend/POILayer.js"></script>
 </head>
 
 <body>
@@ -37,7 +37,8 @@ var geojson =
         "CategoryID": 12,
         "SubCategoryID": 62,
         "Category": "Architecture",
-        "SubCategory": "19th century"
+        "SubCategory": "19th century",
+        icon: "nightlife"
       },
       "geometry": {
         "type": "Point",
@@ -71,7 +72,8 @@ var geojson =
         "CategoryID": 1,
         "SubCategoryID": 75,
         "Category": "Urban",
-        "SubCategory": "Railway station"
+        "SubCategory": "Railway station",
+        icon: "visit"
       },
       "geometry": {
         "type": "Point",
@@ -88,7 +90,8 @@ var geojson =
         "CategoryID": 4,
         "SubCategoryID": 93,
         "Category": "Culture",
-        "SubCategory": "Theatre / Concert hall / Opera"
+        "SubCategory": "Theatre / Concert hall / Opera",
+        icon: "restaurant"
       },
       "geometry": {
         "type": "Point",
@@ -121,6 +124,9 @@ var geojson =
             canvasTilesRenderer.refresh();
           }
         });
+        poiLayer.loadIcon("nightlife", "Nightlife.png");
+        poiLayer.loadIcon("restaurant", "Restaurant.png");
+        poiLayer.loadIcon("visit", "Visit.png");
 
     </script>
 </body>
