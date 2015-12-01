@@ -5,7 +5,9 @@ function POILayer(params) {
     throw(new Error("POILayer: no renderer !"));
   }
 
-  params.radius = params.radius || 32;
+  this.icons = { };
+
+  params.radius = params.radius || 16;
   params.color = params.color || '#008800';
   params.onFeatureClic = params.onFeatureClic || function(feature, pos) { };
 
@@ -51,7 +53,6 @@ function geojsonGetCoordinates(feature) {
 
 POILayer.prototype.draw = function(canvas, pinchZoom,
                                    bboxTopLeft, bboxBottomRight) {
-  var radius = this.params.radius * this.renderer.pixelRatio;
   var geojson = this.params.geojson;
 
   var context = canvas.getContext('2d');
@@ -66,16 +67,25 @@ POILayer.prototype.draw = function(canvas, pinchZoom,
 
 POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context) {
   var geom = geojson.geometry;
+  var radius = this.params.radius * this.renderer.pixelRatio;
+
   if (geom.type == "Point") {
     var coord = geojsonGetCoordinates(geojson);
     var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
 
-    context.fillStyle = geojson.fillStyle || this.params.color;
-
-    context.beginPath();
-    context.arc(p.x, p.y, this.params.radius, 0, 2 * Math.PI, false);
-    context.stroke();
-    context.fill();
+    if (geojson.properties.icon && this.icons[geojson.properties.icon]) {
+      var size = radius * 2;
+      context.drawImage(this.icons[geojson.properties.icon],
+                        p.x - size / 2,
+                        p.y - size / 2,
+                        size, size);
+    } else {
+      context.fillStyle = geojson.fillStyle || this.params.color;
+      context.beginPath();
+      context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
+      context.stroke();
+      context.fill();
+    }
   }
 };
 
@@ -96,3 +106,23 @@ POILayer.prototype.handleClic = function(pos) {
     this.params.onFeatureClic(bestFeature, pos);
   }
 };
+
+POILayer.prototype.loadIcon = function(name, url) {
+  if (name in this.icons) {
+    return this.icons[name];
+  }
+
+  var icon = new Image();
+  icon.src = url;
+  var me = this;
+  icon.onload = function() {
+    me.renderer.refreshIfNotMoving();
+    me.icons[name] = icon;
+  }
+  icon.onerror = function() {
+    console.log(name + ": can't load icon from: " + url);
+  }
+
+  return icon;
+}
+
