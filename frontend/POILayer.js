@@ -66,34 +66,75 @@ POILayer.prototype.draw = function(canvas, pinchZoom,
 }
 
 POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context) {
+  var type = geojson.geometry && geojson.geometry.type;
+  if (!type) {
+    return;
+  }
+  var funcName = 'render' + type;
+  if (this[funcName]) {
+    this[funcName](canvas, pinchZoom, geojson, context);
+  }
+}
+
+POILayer.prototype.featureRadius = function() {
+  return this.params.radius * this.renderer.pixelRatio;
+}
+
+POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   var geom = geojson.geometry;
-  var radius = this.params.radius * this.renderer.pixelRatio;
+  var radius = this.featureRadius();
 
-  if (geom.type == "Point") {
-    var coord = geojsonGetCoordinates(geojson);
-    var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
+  var coord = geojsonGetCoordinates(geojson);
+  var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
 
-    if (geojson.properties.icon && this.icons[geojson.properties.icon]) {
-      var size = radius * 2;
-      context.drawImage(this.icons[geojson.properties.icon],
-                        p.x - size / 2,
-                        p.y - size / 2,
-                        size, size);
-    } else {
-      context.fillStyle = geojson.fillStyle || this.params.color;
-      context.beginPath();
-      context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
-      context.stroke();
-      context.fill();
+  if (geojson.properties.icon && this.icons[geojson.properties.icon]) {
+    var size = radius * 2;
+    context.drawImage(this.icons[geojson.properties.icon],
+                      p.x - size / 2,
+                      p.y - size / 2,
+                      size, size);
+  } else {
+    context.fillStyle = geojson.fillStyle || this.params.color;
+    context.beginPath();
+    context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
+    context.fill();
+  }
+};
+
+POILayer.prototype.renderPolygon = function(canvas, pinchZoom, feature, context) {
+  context.strokeStyle = feature.properties.stroke || '#000000';
+  context.lineWidth =
+    feature.properties['stroke-width'] * this.renderer.pixelRatio;
+  context.fillStyle = feature.properties.fill || '#ffffff';
+
+  var geojsonToView = function(point) {
+    return pinchZoom.viewerPosFromWorldPos(Utils.latLonToWorld(point));
+  }
+
+  for (var j = 0; j < feature.geometry.coordinates.length; ++j) {
+    var connectedPoly = feature.geometry.coordinates[j];
+    var start = geojsonToView(connectedPoly[0]);
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    for (var i = 1; i < connectedPoly.length; ++i) {
+      var p = geojsonToView(connectedPoly[i]);
+      context.lineTo(p.x, p.y);
     }
+    context.closePath();
+    context.fill();
+    context.stroke();
   }
 };
 
 POILayer.prototype.handleClic = function(pos) {
-  var bestDist = undefined;
+  var bestDist =
+    this.renderer.pinchZoom.worldDistanceFromViewerDistance(this.featureRadius());
   var bestFeature = undefined;
 
   forEachFeature(this.params.geojson, function(feature) {
+    if (feature.geometry.type != 'Point') {
+      return;
+    }
     var featureCoord = geojsonGetCoordinates(feature);
     var d = Utils.distance(featureCoord, pos.startWorldPos);
     if (bestDist == undefined || d < bestDist) {
@@ -102,9 +143,7 @@ POILayer.prototype.handleClic = function(pos) {
     }
   });
 
-  if (bestFeature) {
-    this.params.onFeatureClic(bestFeature, pos);
-  }
+  this.params.onFeatureClic(bestFeature, pos);
 };
 
 POILayer.prototype.loadIcon = function(name, url) {

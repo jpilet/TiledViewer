@@ -31,6 +31,27 @@ var geojson =
     {
       "type": "Feature",
       "properties": {
+        "stroke": "#d34356",
+        "stroke-width": 4,
+        "fill": "rgba(255, 255, 255, .5)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [ 4.895439147949219, 52.376332744462054 ],
+            [ 4.900932312011719, 52.37675192059285 ],
+            [ 4.901790618896484, 52.37339840013861 ],
+            [ 4.895954132080078, 52.37329359852117 ],
+            [ 4.898185729980469, 52.375179989586506 ],
+            [ 4.895439147949219, 52.376332744462054 ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "NameLocal": "Blauwbrug",
         "NameEN": "Blauwbrug (Blue Bridge)",
         "NameDE": "Blauwbrug (Blaue Brücke)",
@@ -128,8 +149,12 @@ var geojson =
                  delete f.fillStyle
                }
             });
-            arrowLayer.setPoint(geojsonGetCoordinates(feature));
-            feature.fillStyle = "#00CC00";
+            if (feature) {
+              feature.fillStyle = "#00CC00";
+              arrowLayer.setPoint(geojsonGetCoordinates(feature));
+            } else {
+              arrowLayer.setPoint(undefined);
+            }
 
             canvasTilesRenderer.refresh();
           }

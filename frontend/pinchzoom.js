@@ -61,6 +61,18 @@ PinchZoom.prototype.viewerPosFromWorldPos = function(x, y) {
   return this.transform.transform(x, y);
 };
 
+PinchZoom.prototype.worldDistanceFromViewerDistance = function(d) {
+  // W(x) - W(x+d)
+  // = A * x + b - (A * (x + d) + b)
+  // = A * x + b - A * x - A * d - b
+  // = -A * d
+  return this.transform.getInverse().matrix[0] * d;
+};
+
+PinchZoom.prototype.viewerDistanceFromWorldDistance = function(d) {
+  return this.transform.matrix[0] * d;
+}
+
 PinchZoom.prototype.isMoving = function() {
     var count = 0;
 
