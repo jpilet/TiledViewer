@@ -149,8 +149,12 @@ var geojson =
                  delete f.fillStyle
                }
             });
-            arrowLayer.setPoint(geojsonGetCoordinates(feature));
-            feature.fillStyle = "#00CC00";
+            if (feature) {
+              feature.fillStyle = "#00CC00";
+              arrowLayer.setPoint(geojsonGetCoordinates(feature));
+            } else {
+              arrowLayer.setPoint(undefined);
+            }
 
             canvasTilesRenderer.refresh();
           }

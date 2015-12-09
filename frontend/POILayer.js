@@ -76,9 +76,13 @@ POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context)
   }
 }
 
+POILayer.prototype.featureRadius = function() {
+  return this.params.radius * this.renderer.pixelRatio;
+}
+
 POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   var geom = geojson.geometry;
-  var radius = this.params.radius * this.renderer.pixelRatio;
+  var radius = this.featureRadius();
 
   var coord = geojsonGetCoordinates(geojson);
   var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
@@ -123,10 +127,14 @@ POILayer.prototype.renderPolygon = function(canvas, pinchZoom, feature, context)
 };
 
 POILayer.prototype.handleClic = function(pos) {
-  var bestDist = undefined;
+  var bestDist =
+    this.renderer.pinchZoom.worldDistanceFromViewerDistance(this.featureRadius());
   var bestFeature = undefined;
 
   forEachFeature(this.params.geojson, function(feature) {
+    if (feature.geometry.type != 'Point') {
+      return;
+    }
     var featureCoord = geojsonGetCoordinates(feature);
     var d = Utils.distance(featureCoord, pos.startWorldPos);
     if (bestDist == undefined || d < bestDist) {
@@ -135,9 +143,7 @@ POILayer.prototype.handleClic = function(pos) {
     }
   });
 
-  if (bestFeature) {
-    this.params.onFeatureClic(bestFeature, pos);
-  }
+  this.params.onFeatureClic(bestFeature, pos);
 };
 
 POILayer.prototype.loadIcon = function(name, url) {
