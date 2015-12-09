@@ -14,6 +14,7 @@
   <script src="../frontend/CanvasTilesRenderer.js"></script>
   <script src="../frontend/TileLayer.js"></script>
   <script src="../frontend/POILayer.js"></script>
+  <script src="../frontend/ArrowLayer.js"></script>
 </head>
 
 <body>
@@ -111,6 +112,13 @@ var geojson =
     	    }
     	  });
 
+        // Layers will be drawn in the order they are defined.
+        // Here, the POI will cover the arrow.
+        var arrowLayer = new ArrowLayer({
+          renderer: canvasTilesRenderer,
+          color: 'rgba(60,20,30,.5)'
+          });
+
         var poiLayer = new POILayer({
           renderer: canvasTilesRenderer,
           geojson: geojson,
@@ -120,7 +128,9 @@ var geojson =
                  delete f.fillStyle
                }
             });
+            arrowLayer.setPoint(geojsonGetCoordinates(feature));
             feature.fillStyle = "#00CC00";
+
             canvasTilesRenderer.refresh();
           }
         });
