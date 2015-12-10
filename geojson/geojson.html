@@ -144,13 +144,11 @@ var geojson =
           renderer: canvasTilesRenderer,
           geojson: geojson,
           onFeatureClic: function(feature, pos) {
-            forEachFeature(geojson, function(f) {
-               if (f.fillStyle) {
-                 delete f.fillStyle
-               }
-            });
             if (feature) {
-              feature.fillStyle = "#00CC00";
+              forEachFeature(geojson, function(f) {
+                 f.properties.circled = false;
+              });
+              feature.properties.circled = true;
               arrowLayer.setPoint(geojsonGetCoordinates(feature));
             } else {
               arrowLayer.setPoint(undefined);
