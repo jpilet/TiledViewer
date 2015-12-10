@@ -101,11 +101,17 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
                       p.x - size / 2,
                       p.y - size / 2,
                       size, size);
-  } else {
-    context.fillStyle = geojson.fillStyle || this.params.color;
-    context.beginPath();
-    context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
-    context.fill();
+  }
+
+  if (geojson.properties.text) {
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = (20 * this.renderer.pixelRatio) + 'px sans-serif';
+    context.fillStyle = geojson.properties.fill || '#ffffff';
+    context.strokeStyle = geojson.properties.stroke || '#000000';
+    context.lineWidth = 8 * this.renderer.pixelRatio;
+    context.strokeText(geojson.properties.text, p.x, p.y);
+    context.fillText(geojson.properties.text, p.x, p.y);
   }
 };
 
