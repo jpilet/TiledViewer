@@ -306,12 +306,29 @@ PinchZoom.prototype.processConstraints = function(constraints) {
   this.checkAndApplyTransform(newTransform);
 };
 
+function minDefined(a, b) {
+  if (!a) { return b; }
+  if (!b) { return a; }
+  return Math.min(a, b);
+}
+
+function maxDefined(a, b) {
+  if (!a) { return b; }
+  if (!b) { return a; }
+  return Math.max(a, b);
+}
+
+
 PinchZoom.prototype.enforceConstraints = function (newTransform) {
   var T = newTransform.matrix;
 
   var boundScaleX = this.element.width / this.worldWidth;
   var boundScaleY = this.element.height / this.worldHeight;
   var scaleBound = Math.min(boundScaleX, boundScaleY);
+
+  if (this.maxScale) {
+    scaleBound = Math.max(scaleBound, this.element.width / this.maxScale);
+  }
 
   var scale = T[0];
   var scaleFactor = 1.0;
@@ -333,7 +350,20 @@ PinchZoom.prototype.enforceConstraints = function (newTransform) {
   if (T[2] > 0) T[2] = 0;
   if (T[5] > 0) T[5] = 0;    
   
-  var bottomright = newTransform.transform(this.worldWidth, this.worldHeight);
+  var topleft = newTransform.transform(
+      maxDefined(this.minX, 0),
+      maxDefined(this.minY, 0));
+  if (topleft.x > 0) {
+    T[2] -= (T[2] == 0 ? .5 : 1) * topleft.x;
+  }
+  if (topleft.y > 0) {
+    T[5] -= (T[5] == 0 ? .5 : 1) * topleft.y;
+  }
+
+  var bottomright = newTransform.transform(
+      minDefined(this.maxX, this.worldWidth),
+      minDefined(this.maxY, this.worldHeight));
+
   if (bottomright.x < this.element.width) {
     var center = (T[2] == 0 ? .5 : 1);
     T[2] += center * (this.element.width - bottomright.x);      
