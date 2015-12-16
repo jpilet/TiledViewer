@@ -146,7 +146,7 @@ POILayer.prototype.handleClic = function(pos) {
   var bestFeature = undefined;
 
   forEachFeature(this.params.geojson, function(feature) {
-    if (feature.geometry.type != 'Point') {
+    if (!feature.properties.hideIcon && feature.geometry.type != 'Point') {
       return;
     }
     var featureCoord = geojsonGetCoordinates(feature);
