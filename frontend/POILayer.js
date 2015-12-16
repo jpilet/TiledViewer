@@ -115,30 +115,48 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   }
 };
 
+var geojsonToView = function(pinchZoom, point) {
+  return pinchZoom.viewerPosFromWorldPos(Utils.latLonToWorld(point));
+};
+
+function renderPath(context, pinchZoom, points, closed) {
+  var start = geojsonToView(pinchZoom, points[0]);
+  context.beginPath();
+  context.moveTo(start.x, start.y);
+  for (var i = 1; i < points.length; ++i) {
+    var p = geojsonToView(pinchZoom, points[i]);
+    context.lineTo(p.x, p.y);
+  }
+  if (closed) {
+    context.closePath();
+  }
+}
+
 POILayer.prototype.renderPolygon = function(canvas, pinchZoom, feature, context) {
   context.strokeStyle = feature.properties.stroke || '#000000';
   context.lineWidth =
     feature.properties['stroke-width'] * this.renderer.pixelRatio;
   context.fillStyle = feature.properties.fill || '#ffffff';
 
-  var geojsonToView = function(point) {
-    return pinchZoom.viewerPosFromWorldPos(Utils.latLonToWorld(point));
-  }
-
   for (var j = 0; j < feature.geometry.coordinates.length; ++j) {
     var connectedPoly = feature.geometry.coordinates[j];
-    var start = geojsonToView(connectedPoly[0]);
-    context.beginPath();
-    context.moveTo(start.x, start.y);
-    for (var i = 1; i < connectedPoly.length; ++i) {
-      var p = geojsonToView(connectedPoly[i]);
-      context.lineTo(p.x, p.y);
-    }
-    context.closePath();
+    renderPath(context, pinchZoom, connectedPoly, true);
     context.fill();
     context.stroke();
   }
 };
+
+POILayer.prototype.renderLineString =
+    function(canvas, pinchZoom, feature, context) {
+  context.lineWidth =
+    (feature.properties['stroke-width'] || 5) * this.renderer.pixelRatio;
+  context.strokeStyle = feature.properties.stroke || '#000000';
+  context.lineCap = 'round';
+
+  renderPath(context, pinchZoom, feature.geometry.coordinates, false);
+  context.stroke();
+};
+
 
 POILayer.prototype.handleClic = function(pos) {
   var bestDist =
