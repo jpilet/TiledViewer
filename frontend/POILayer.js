@@ -87,7 +87,7 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   var coord = geojsonGetCoordinates(geojson);
   var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
 
-  if (geojson.properties.circled) {
+  if (!geojson.properties.hideIcon && geojson.properties.circled) {
     context.strokeStyle = "rgba(255,255,255,.8)";
     context.lineWidth = 5 * this.renderer.pixelRatio;
     context.beginPath();
@@ -95,7 +95,7 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
     context.stroke();
   }
 
-  if (geojson.properties.icon && this.icons[geojson.properties.icon]) {
+  if (!geojson.properties.hideIcon && geojson.properties.icon && this.icons[geojson.properties.icon]) {
     var size = radius * 2;
     context.drawImage(this.icons[geojson.properties.icon],
                       p.x - size / 2,
@@ -164,7 +164,7 @@ POILayer.prototype.handleClic = function(pos) {
   var bestFeature = undefined;
 
   forEachFeature(this.params.geojson, function(feature) {
-    if (feature.geometry.type != 'Point') {
+    if (feature.geometry.type != 'Point' || feature.properties.hideIcon) {
       return;
     }
     var featureCoord = geojsonGetCoordinates(feature);
@@ -196,4 +196,3 @@ POILayer.prototype.loadIcon = function(name, url) {
 
   return icon;
 }
-

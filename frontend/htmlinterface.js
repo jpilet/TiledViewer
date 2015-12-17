@@ -2,13 +2,13 @@
 window.addEventListener("load", function load(event){
   //remove listener, no longer needed
   window.removeEventListener("load", load, false);
-  MapHtmlInterface.init();  
+  MapHtmlInterface.init();
 },false);
 
 var MapHtmlInterface = {
   paramNames: ["url", "width", "height", "debug", "minScale", "tileSize",
                "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS",
-               "initialLocation", "onLocationChange", "geoConv"],
+               "initialLocation", "onLocationChange", "geoConv", "maxScale", "maxX", "maxY", "minY", "minX"],
   stringParamNames: {"url": true},
 
   init: function() {
