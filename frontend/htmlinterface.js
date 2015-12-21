@@ -19,11 +19,14 @@ var MapHtmlInterface = {
   },
 
   initMap: function(container) {
-    var canvas = document.createElement('canvas');
+    var canvas = container.getElementsByTagName('canvas')[0];
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      container.insertBefore(canvas, container.childNodes[0]);
+    }
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.innerHtml = "Your browser does not support CANVAS.";
-    container.insertBefore(canvas, container.childNodes[0]);
 
     var params = {
       canvas: canvas,
