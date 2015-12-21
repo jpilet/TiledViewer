@@ -76,6 +76,17 @@ POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context)
   }
 }
 
+POILayer.prototype.renderCircle = function(canvas, pinchZoom, geojson, context) {
+  var coord = geojsonGetCoordinates(geojson);
+  var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
+  var radius = geojson.properties['radius'] || 8;
+
+  context.beginPath();
+  context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = geojson.properties.fill || "rgba(255,255,255,.8)";
+  context.fill();
+}
+
 POILayer.prototype.featureRadius = function() {
   return this.params.radius * this.renderer.pixelRatio;
 }
