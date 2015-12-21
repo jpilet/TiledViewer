@@ -224,7 +224,7 @@ POILayer.prototype.visibleCoordinateArray = function() {
     },
   };
 
-  forEachFeature(geojson, function(feature) {
+  forEachFeature(me.params.geojson, function(feature) {
     var type = feature.geometry && feature.geometry.type;
     if (type && f[type]) {
       f[type](feature, result);
