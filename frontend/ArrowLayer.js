@@ -37,8 +37,8 @@ ArrowLayer.prototype.draw = function(canvas, pinchZoom,
   context.fillStyle = this.params.color;
   context.beginPath();
   var w = this.params.width * this.renderer.pixelRatio;
-  context.moveTo(p.x - w / 2, 0);
-  context.lineTo(p.x + w / 2, 0);
+  context.moveTo(p.x - w / 2, canvas.height);
+  context.lineTo(p.x + w / 2, canvas.height);
   context.lineTo(p.x, p.y);
   context.closePath();
   context.fill();
