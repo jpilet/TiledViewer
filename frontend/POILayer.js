@@ -196,3 +196,76 @@ POILayer.prototype.loadIcon = function(name, url) {
 
   return icon;
 }
+
+function getPathVisibleCoordinates(points, array) {
+  for (var i = 0; i < points.length; ++i) {
+    array.push(Utils.latLonToWorld(points[i]));
+  }
+}
+
+POILayer.prototype.visibleCoordinateArray = function() {
+  var me = this;
+
+  var result = [];
+
+  var f = {
+    'Point' : function(feature, result) {
+      if (!('hideIcon' in feature.properties) || !feature.properties.hideIcon) {
+        result.push(geojsonGetCoordinates(feature));
+      }
+    },
+    'Polygon' : function(feature, result) {
+      for (var j = 0; j < feature.geometry.coordinates.length; ++j) {
+        getPathVisibleCoordinates(feature.geometry.coordinates[j], result);
+      }
+    },
+    'LineString': function(feature, result) {
+      getPathVisibleCoordinates(feature.geometry.coordinates, result);
+    },
+  };
+
+  forEachFeature(geojson, function(feature) {
+    var type = feature.geometry && feature.geometry.type;
+    if (type && f[type]) {
+      f[type](feature, result);
+    }
+  });
+
+  return result;
+};
+
+function boundingBox(coords) {
+  var result = {
+    min: { x: undefined, y: undefined},
+    max: { x: undefined, y: undefined}
+  };
+  if (coords.length == 0) {
+    return result;
+  }
+  result.min.x = result.max.x = coords[0].x;
+  result.min.y = result.max.y = coords[0].y;
+  for (var i = 1; i < coords.length; ++i) {
+    result.min.x = Math.min(result.min.x, coords[i].x);
+    result.min.y = Math.min(result.min.y, coords[i].y);
+    result.max.x = Math.max(result.max.x, coords[i].x);
+    result.max.y = Math.max(result.max.y, coords[i].y);
+  }
+  return result;
+}
+
+POILayer.prototype.getVisibleFeatureLocation = function(minScale, margin) {
+  var bbox = boundingBox(this.visibleCoordinateArray());
+  var ratio = this.renderer.canvas.width / this.renderer.canvas.height;
+  var width = bbox.max.x - bbox.min.x;
+  var height = bbox.max.y - bbox.min.y;
+  margin = margin || 1.1;
+  return {
+    x: width / 2 + bbox.min.x,
+    y: height / 2 + bbox.min.y,
+    scale: Math.max(width * margin, height * ratio * margin, minScale)
+  };
+};
+
+POILayer.prototype.zoomOnVisibleFeatures = function(minScale, margin) {
+  this.renderer.setLocation(this.getVisibleFeatureLocation(minScale, margin));
+};
