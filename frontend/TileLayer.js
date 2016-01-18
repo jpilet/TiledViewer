@@ -36,6 +36,13 @@ TileLayer.prototype.draw = function(canvas, pinchZoom,
   var numTiles = (canvas.width / density) / this.params.tileSize;
   var targetUnitPerTile = (bboxBottomRight.x - bboxTopLeft.x) / numTiles;
   var scale = Math.max(0, Math.ceil(- Math.log(targetUnitPerTile) / Math.LN2));
+
+  // Are we in downsampled mode? if yes, artificially push to the next scale level.
+  if (canvas.canvasTilesRenderer.params.downsampleDuringMotion
+      && pinchZoom.isMoving()) {
+    scale += 1;
+  }
+
   var actualUnitPerTile = 1 / (1 << scale);
 
   var getTileX = function(unitX) { return  Math.floor(unitX * (1 << scale)); };

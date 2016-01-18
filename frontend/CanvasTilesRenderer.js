@@ -26,8 +26,9 @@ function CanvasTilesRenderer(params) {
   this.params.height = this.params.height || 1;
   this.params.minScale = this.params.minScale || 0;
   
-  this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 20;
-  
+  this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 15;
+  this.params.downsampleDuringMotion = false;
+
   this.layers = [
     new TileLayer(params, this)
   ];
