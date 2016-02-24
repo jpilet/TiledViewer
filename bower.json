@@ -14,5 +14,8 @@
   "ignore": [
     ".*",
     "tilegenerator"
-  ]
+  ],
+  "dependencies": {
+    "d3": "^3.5.15"
+  }
 }
