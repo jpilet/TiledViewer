@@ -1,0 +1,58 @@
+<!doctype html>
+
+<head>
+  <title>Tiled Image viewer</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <style>
+    body {margin: 0; overflow: hidden; }
+    html,body { width: 100%; height: 100%; }
+    canvas {width: 100%; height: 80%;}
+  </style>
+  <script src="../frontend/utils.js"></script>
+  <script src="../frontend/affinetransform.js"></script>
+  <script src="../frontend/pinchzoom.js"></script>
+  <script src="../frontend/CanvasTilesRenderer.js"></script>
+  <script src="../frontend/TileLayer.js"></script>
+  <script src="../frontend/POILayer.js"></script>
+  <script src="../bower_components/d3/d3.min.js"></script>
+  <script src="../frontend/MergingIconLayer.js"></script>
+</head>
+
+<body>
+    <canvas id="viewer">
+    	Your browser is too old.
+    </canvas>
+    <button type="button" onclick="poiLayer.zoomOnVisibleFeatures(.00002);">O</button>
+    <div id="location"></div>
+    <script>
+
+    	var canvasTilesRenderer = new CanvasTilesRenderer({
+            canvas: document.getElementById("viewer"),
+    	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
+    	    //initialLocation: {x:0.5136229387648525,y:0.32859961404591626,scale:0.00014809229409828983},
+    	    onLocationChange: function(canvasTilesRenderer) {
+    	      var location = canvasTilesRenderer.getLocation();
+    	      document.getElementById("location").innerHTML = 
+    	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+    	    },
+    	  });
+
+        var mergingIconLayer = new MergingIcon({
+          renderer: canvasTilesRenderer,
+          geojson: {},
+          radius: 15,
+          onFeatureClic: function(feature, pos) { }
+        });
+        mergingIconLayer.loadIcon("nightlife", "../geojson/Nightlife.png");
+        mergingIconLayer.loadIcon("restaurant", "../geojson/Restaurant.png");
+        mergingIconLayer.loadIcon("visit", "../geojson/Visit.png");
+
+        var points = [];
+        for (var i = 0; i < 100000; ++i) {
+          points.push({x : Math.random(), y: Math.random() });
+        }
+        mergingIconLayer.setPoints(points);
+
+    </script>
+</body>
+</html>

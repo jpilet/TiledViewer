@@ -1,9 +1,12 @@
 *.class
 *.pyc
 *.pyo
+*.sw[po]
+.DS_Store
 examples
 testapp
 tilegenerator/build
 frontend/mapviewer.js
 frontend/mapviewer.min.js
 downloadTiles
+bower_components
