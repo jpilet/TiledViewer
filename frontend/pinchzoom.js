@@ -318,12 +318,29 @@ function maxDefined(a, b) {
   return Math.max(a, b);
 }
 
+PinchZoom.prototype.topLeftWorld = function() {
+  return {
+    x: maxDefined(this.minX, 0),
+    y: maxDefined(this.minY, 0)
+  };
+}
+
+PinchZoom.prototype.bottomRightWorld = function() {
+  return {
+      x: minDefined(this.maxX, this.worldWidth),
+      y: minDefined(this.maxY, this.worldHeight)
+  };
+}
 
 PinchZoom.prototype.enforceConstraints = function (newTransform) {
   var T = newTransform.matrix;
 
-  var boundScaleX = this.element.width / this.worldWidth;
-  var boundScaleY = this.element.height / this.worldHeight;
+  var topLeftWorld = this.topLeftWorld();
+  var bottomRightWorld = this.bottomRightWorld();
+  var worldWidth = bottomRightWorld.x - topLeftWorld.x;
+  var worldHeight = bottomRightWorld.y - topLeftWorld.y;
+  var boundScaleX = this.element.width / worldWidth;
+  var boundScaleY = this.element.height / worldHeight;
   var scaleBound = Math.min(boundScaleX, boundScaleY);
 
   if (this.maxScale) {
@@ -347,30 +364,31 @@ PinchZoom.prototype.enforceConstraints = function (newTransform) {
   T[2] *= scaleFactor;
   T[5] *= scaleFactor;
     
-  if (T[2] > 0) T[2] = 0;
-  if (T[5] > 0) T[5] = 0;    
-  
-  var topleft = newTransform.transform(
-      maxDefined(this.minX, 0),
-      maxDefined(this.minY, 0));
-  if (topleft.x > 0) {
-    T[2] -= (T[2] == 0 ? .5 : 1) * topleft.x;
-  }
-  if (topleft.y > 0) {
-    T[5] -= (T[5] == 0 ? .5 : 1) * topleft.y;
+  var topleft = newTransform.transform(this.topLeftWorld());
+  var bottomright = newTransform.transform(this.bottomRightWorld());
+  var width = bottomright.x - topleft.x;
+  var height = bottomright.y - topleft.y;
+
+  if (width < this.element.width) {
+    T[2] = (T[2] - topleft.x) + (this.element.width - width) / 2;
+  } else {
+    if (topleft.x > 0) {
+      T[2] -= topleft.x;
+    }
+    if (bottomright.x < this.element.width) {
+      T[2] += this.element.width - bottomright.x;
+    }
   }
 
-  var bottomright = newTransform.transform(
-      minDefined(this.maxX, this.worldWidth),
-      minDefined(this.maxY, this.worldHeight));
-
-  if (bottomright.x < this.element.width) {
-    var center = (T[2] == 0 ? .5 : 1);
-    T[2] += center * (this.element.width - bottomright.x);      
-  }
-  if (bottomright.y < this.element.height) {
-    var center = (T[5] == 0 ? .5 : 1);
-    T[5] += center * (this.element.height - bottomright.y);      
+  if (height < this.element.height) {
+    T[5] = (T[5] - topleft.y) + (this.element.height - height) / 2;
+  } else {
+    if (topleft.y > 0) {
+      T[5] -= topleft.y;
+    }
+    if (bottomright.y < this.element.height) {
+      T[5] += this.element.height - bottomright.y;
+    }
   }
 };
   
