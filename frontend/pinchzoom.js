@@ -307,14 +307,14 @@ PinchZoom.prototype.processConstraints = function(constraints) {
 };
 
 function minDefined(a, b) {
-  if (!a) { return b; }
-  if (!b) { return a; }
+  if (a == undefined) { return b; }
+  if (b == undefined) { return a; }
   return Math.min(a, b);
 }
 
 function maxDefined(a, b) {
-  if (!a) { return b; }
-  if (!b) { return a; }
+  if (a == undefined) { return b; }
+  if (b == undefined) { return a; }
   return Math.max(a, b);
 }
 
@@ -353,8 +353,11 @@ PinchZoom.prototype.enforceConstraints = function (newTransform) {
     scaleFactor = scaleBound / scale;
   }
 
-  if (this.minScale > 0) {
-      var maxScale = this.element.width / this.minScale;
+  var minScale = maxDefined(
+      this.minScale, this.dynamicMinScale(newTransform));
+
+  if (minScale > 0) {
+      var maxScale = this.element.width / minScale;
       if (scale > maxScale) {
           scaleFactor = maxScale / scale;
       }
@@ -409,4 +412,19 @@ PinchZoom.prototype.handleSingleClic = function(mousePos) {
   if (this.onClic) {
     this.onClic(mousePos, this);
   }
-}
+};
+
+PinchZoom.prototype.dynamicMinScale = function(transform) {
+  var canvas = this.element;
+  var layers = canvas.canvasTilesRenderer.layers;
+  var center = { x: canvas.width / 2, y: canvas.height / 2 };
+
+  var p = transform.inverseTransform(center);
+  var minScale;
+  for (var i in layers) {
+    if (layers[i].minScaleAt) {
+      minScale = maxDefined(minScale, layers[i].minScaleAt(canvas, p));
+    }
+  }
+  return minScale;
+};
