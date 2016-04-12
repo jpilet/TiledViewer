@@ -274,9 +274,6 @@ PinchZoom.prototype.processConstraints = function(constraints) {
     T[2] = r[1];
     T[5] = r[2];    
 
-    this.enforceConstraints(newTransform);
-
-    // If enforceConstraints changed scale, we need to reset translation.
     var c = {
       world: {
         x: (constraints[0].world.x + constraints[1].world.x) / 2,
@@ -287,16 +284,21 @@ PinchZoom.prototype.processConstraints = function(constraints) {
         y: (constraints[0].viewer.y + constraints[1].viewer.y) / 2,
       }
     };
+
+    this.enforceConstraints(newTransform, c.world);
+
+    // If enforceConstraints changed scale, we need to reset translation.
     T[2] = c.viewer.x - (T[0] * c.world.x + T[1] * c.world.y);
     T[5] = c.viewer.y - (T[3] * c.world.x + T[4] * c.world.y);
 
   } else if (constraints.length == 1) {
+    var c = constraints[0];
+
     // Make sure the scale is within bounds.
-    this.enforceConstraints(newTransform);
+    this.enforceConstraints(newTransform, c.world);
 
     // scroll: Solve A* world + X = viewer
     // -> X = viewer - A * world
-    var c = constraints[0];
     T[2] = c.viewer.x - (T[0] * c.world.x + T[1] * c.world.y);
     T[5] = c.viewer.y - (T[3] * c.world.x + T[4] * c.world.y);
   }
@@ -332,7 +334,7 @@ PinchZoom.prototype.bottomRightWorld = function() {
   };
 }
 
-PinchZoom.prototype.enforceConstraints = function (newTransform) {
+PinchZoom.prototype.enforceConstraints = function (newTransform, focusPoint) {
   var T = newTransform.matrix;
 
   var topLeftWorld = this.topLeftWorld();
@@ -354,7 +356,7 @@ PinchZoom.prototype.enforceConstraints = function (newTransform) {
   }
 
   var minScale = maxDefined(
-      this.minScale, this.dynamicMinScale(newTransform));
+      this.minScale, this.dynamicMinScale(focusPoint));
 
   if (minScale > 0) {
       var maxScale = this.element.width / minScale;
@@ -414,16 +416,17 @@ PinchZoom.prototype.handleSingleClic = function(mousePos) {
   }
 };
 
-PinchZoom.prototype.dynamicMinScale = function(transform) {
+PinchZoom.prototype.dynamicMinScale = function(focusPoint) {
+  if (focusPoint == undefined) {
+    return undefined;
+  }
   var canvas = this.element;
   var layers = canvas.canvasTilesRenderer.layers;
-  var center = { x: canvas.width / 2, y: canvas.height / 2 };
 
-  var p = transform.inverseTransform(center);
   var minScale;
   for (var i in layers) {
     if (layers[i].minScaleAt) {
-      minScale = maxDefined(minScale, layers[i].minScaleAt(canvas, p));
+      minScale = maxDefined(minScale, layers[i].minScaleAt(canvas, focusPoint));
     }
   }
   return minScale;
