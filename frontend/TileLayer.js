@@ -289,6 +289,8 @@ TileLayer.prototype.minScaleAt = function(canvas, p) {
   }
 
   var numTiles = canvas.width / this.tileSizeOnCanvas(canvas);
-  return numTiles / (1 << maxZoomLevel);
+  var minScale = .5 * numTiles / (1 << maxZoomLevel);
+
+  return minScale;
 };
 
