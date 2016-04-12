@@ -96,11 +96,15 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   }
 
   if (!geojson.properties.hideIcon && geojson.properties.icon && this.icons[geojson.properties.icon]) {
-    var size = radius * 2;
-    context.drawImage(this.icons[geojson.properties.icon],
-                      p.x - size / 2,
-                      p.y - size / 2,
-                      size, size);
+    var icon = this.icons[geojson.properties.icon];
+    var width = icon.width || radius * 2;
+    var height = icon.height || width;
+    var ratioX = icon.ratioX || .5;
+    var ratioY = icon.ratioY || .5;
+    context.drawImage(icon.icon,
+                      p.x - width * ratioX,
+                      p.y - height * ratioY,
+                      width, height);
   }
 
   if (geojson.properties.text) {
@@ -178,7 +182,15 @@ POILayer.prototype.handleClic = function(pos) {
   this.params.onFeatureClic(bestFeature, pos);
 };
 
-POILayer.prototype.loadIcon = function(name, url) {
+/* options is an optional object with the following entries:
+    width: icon width on map. Default: radius * 2.
+    height: icon height on map. Default: same as width;
+    ratioX: where the icon points to, as a ratio of the width. 0 corresponds to
+            the left side, 1 to the right side. Default: 0.5.
+    ratioY: where the icon points to, as a ratio of the height. 0 corresponds to
+            the upper side, 1 to the lower side. Default: 0.5.
+*/
+POILayer.prototype.loadIcon = function(name, url, options) {
   if (name in this.icons) {
     return this.icons[name];
   }
@@ -188,7 +200,13 @@ POILayer.prototype.loadIcon = function(name, url) {
   var me = this;
   icon.onload = function() {
     me.renderer.refreshIfNotMoving();
-    me.icons[name] = icon;
+    var obj = {
+      icon: icon,
+    };
+    for (var i in options) {
+      obj[i] = options[i];
+    }
+    me.icons[name] = obj;
   }
   icon.onerror = function() {
     console.log(name + ": can't load icon from: " + url);

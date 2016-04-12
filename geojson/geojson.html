@@ -183,7 +183,12 @@ var geojson =
           }
         });
         poiLayer.loadIcon("nightlife", "Nightlife.png");
-        poiLayer.loadIcon("restaurant", "Restaurant.png");
+        poiLayer.loadIcon("restaurant", "Restaurant.png", {
+          width: 128,
+          height: 128,
+          ratioX: .5,
+          ratioY: 1.5
+        });
         poiLayer.loadIcon("visit", "Visit.png");
 
     </script>
