@@ -74,14 +74,18 @@ PinchZoom.prototype.viewerDistanceFromWorldDistance = function(d) {
 }
 
 PinchZoom.prototype.isMoving = function() {
-    var count = 0;
-
-    for (var i in this.ongoingTouches) {
-        if (this.ongoingTouches[i]) {
-            ++count;
-        }
+  // We're moving if at least one touch moved at least 1 pixel
+  for (var i in this.ongoingTouches) {
+    var touch = this.ongoingTouches[i];
+    if (touch && touch.currentViewerPos) {
+      var dist = Utils.distance(touch.currentViewerPos,
+                                touch.startViewerPos);
+      if (dist > 1) {
+        return true;
+      }
     }
-    return count > 0;
+  }
+  return false;
 };
 
 PinchZoom.prototype.handleDoubleClic = function(viewerPos) {
@@ -193,6 +197,7 @@ startWorldPos: this.worldPosFromViewerPos(viewerPos.x, viewerPos.y),
 PinchZoom.prototype.handleEnd = function(event) {
   event.preventDefault();
 
+
   if (event.touches.length == 0) {
     // No finger left on the screen. Was it a single tap?
     var now = event.timeStamp;
@@ -229,9 +234,12 @@ PinchZoom.prototype.handleMove = function(event) {
 		}
 		var touch = this.ongoingTouches[touches[i].identifier];
 		
+                touch.currentViewerPos =
+                  Utils.eventPosInElementCoordinates(touches[i], this.element);
+
 		// Every touch is a constraint
 		constraints.push({
-			viewer: Utils.eventPosInElementCoordinates(touches[i], this.element),
+			viewer: touch.currentViewerPos,
 			world: touch.startWorldPos,
 		});
   }
