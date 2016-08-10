@@ -9,7 +9,6 @@ function POILayer(params) {
 
   params.radius = params.radius || 16;
   params.color = params.color || '#008800';
-  params.onFeatureClic = params.onFeatureClic || function(feature, pos) { };
 
   if (params.debug) {
       this.debug = function(msg) { console.log(msg); }
@@ -19,9 +18,12 @@ function POILayer(params) {
 
   this.renderer.addLayer(this);
   var me = this;
-  this.renderer.pinchZoom.onClic = function(pos) {
-    me.handleClic(pos);
-  };
+
+  if (this.params.onFeatureClic) {
+    this.renderer.pinchZoom.onClic = function(pos) {
+      me.handleClic(pos);
+    };
+  }
 }
 
 function forEachFeature(geojson, callback) {
@@ -59,10 +61,18 @@ POILayer.prototype.draw = function(canvas, pinchZoom,
   context.strokeStyle = '#003300';
   context.lineWidth = 1;
 
+  this.delayedFeatures = [];
+  this.renderingTop = false;
+
   var me = this;
   forEachFeature(geojson, function(feature) {
     me.renderFeature(canvas, pinchZoom, feature, context);
   });
+
+  this.renderingTop = true;
+  for (var i in this.delayedFeatures) {
+    this.renderFeature(canvas, pinchZoom, this.delayedFeatures[i], context);
+  }
 }
 
 POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context) {
@@ -70,6 +80,17 @@ POILayer.prototype.renderFeature = function(canvas, pinchZoom, geojson, context)
   if (!type) {
     return;
   }
+
+  var renderOnTop = geojson.properties && geojson.properties.renderOnTop;
+  var renderingTop = this.renderingTop;
+  if (renderOnTop && !renderingTop) {
+    this.delayedFeatures.push(geojson);
+    return;
+  }
+  if (!renderOnTop && renderingTop) {
+    return;
+  }
+
   var funcName = 'render' + type;
   if (this[funcName]) {
     this[funcName](canvas, pinchZoom, geojson, context);
@@ -95,10 +116,122 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
     context.stroke();
   }
 
+  if (geojson.properties.text && !geojson.properties.hideText) {
+    var offset = ('textOffset' in geojson.properties ?
+                  geojson.properties.textOffset : 20);
+    offset *= this.renderer.pixelRatio;
+    var dx, dy;
+    var placement = ((geojson.properties.textPlacement || 'S') + '')
+      .toUpperCase();
+
+    // horizontal settings
+    switch (placement) {
+      default:
+      case 'C':
+      case 'N':
+      case 'S':
+        context.textAlign = 'center';
+        dx = 0;
+        break;
+
+      case 'E':
+        context.textAlign = 'start';
+        dx = offset;
+        break;
+
+      case 'O':
+      case 'W':
+        context.textAlign = 'end';
+        dx = -offset;
+        break;
+    }
+
+    // vertical settings
+    switch (placement) {
+      case 'C':
+      case 'E':
+      case 'W':
+      case 'O':
+        context.textBaseline = 'middle';
+        dy = 0;
+        break;
+
+      case 'N':
+        context.textBaseline = 'bottom';
+        dy = -offset;
+        break;
+
+      default:
+      case 'S':
+        context.textBaseline = 'top';
+        dy = offset;
+        break;
+    }
+
+    var fontSize = 20;
+    context.font = (fontSize * this.renderer.pixelRatio) + 'px '
+      + 'Roboto, "Helvetica Neue", HelveticaNeue, "Helvetica-Neue", Helvetica, Arial, "Lucida Grande", sans-serif';
+
+    var x = p.x + dx;
+    var y = p.y + dy;
+
+    if (geojson.properties.textBubble) {
+      var w = Math.ceil(context.measureText(geojson.properties.text).width);
+      var h = fontSize * this.renderer.pixelRatio * 1.1;
+      var bubbleX, bubbleY;
+      if (context.textAlign == 'end') {
+        bubbleX = x - w;
+      } else if (context.textAlign == 'start') {
+        bubbleX = x;
+      } else {
+        bubbleX = x - w /2;
+      }
+
+      if (context.textBaseline == 'top') {
+        bubbleY = y;
+      } else if (context.textBaseline == 'middle') {
+        bubbleY = y - h/2;
+      } else {
+        bubbleY = y - h;
+      }
+
+      context.fillStyle = '#fff';
+
+      var margin = 5 * this.renderer.pixelRatio;
+      bubbleX = Math.round(bubbleX) - margin;
+      bubbleY = Math.round(bubbleY) - margin;
+      w += 2 * margin;
+      h += 2 * margin;
+
+      context.beginPath();
+
+      context.rect(bubbleX, bubbleY, w, h);
+      context.fill();
+
+      context.moveTo(p.x, p.y);
+      var dpx = -dy * .5;
+      var dpy =  dx * .5;
+
+      context.lineTo(p.x + dx + dpx, p.y + dy + dpy);
+      context.lineTo(p.x + dx - dpx, p.y + dy - dpy);
+      context.lineTo(p.x, p.y);
+
+      context.fill();
+
+    } else {
+      context.strokeStyle = geojson.properties.stroke || 'rgba(255,255,255,.8)';
+      context.lineWidth = 4 * this.renderer.pixelRatio;
+      context.strokeText(geojson.properties.text, x, y);
+    }
+    context.fillStyle = geojson.properties.fill || 'rgba(0,0,0,1)';
+    context.fillText(geojson.properties.text, x, y);
+
+  }
+
   if (!geojson.properties.hideIcon && geojson.properties.icon && this.icons[geojson.properties.icon]) {
     var icon = this.icons[geojson.properties.icon];
-    var width = icon.width || radius * 2;
-    var height = icon.height || width;
+    var width = (icon.width ? icon.width * this.renderer.pixelRatio : radius * 2);
+    var height = (icon.height ? icon.height * this.renderer.pixelRatio : width);
     var ratioX = icon.ratioX || .5;
     var ratioY = icon.ratioY || .5;
     context.drawImage(icon.icon,
@@ -107,16 +240,6 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
                       width, height);
   }
 
-  if (geojson.properties.text) {
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.font = (20 * this.renderer.pixelRatio) + 'px sans-serif';
-    context.fillStyle = geojson.properties.fill || '#ffffff';
-    context.strokeStyle = geojson.properties.stroke || '#000000';
-    context.lineWidth = 8 * this.renderer.pixelRatio;
-    context.strokeText(geojson.properties.text, p.x, p.y);
-    context.fillText(geojson.properties.text, p.x, p.y);
-  }
 };
 
 var geojsonToView = function(pinchZoom, point) {

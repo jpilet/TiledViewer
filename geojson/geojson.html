@@ -6,8 +6,27 @@
   <style>
     body {margin: 0; overflow: hidden; }
     html,body { width: 100%; height: 100%; }
-    canvas {width: 100%; height: 80%;}
+
+    #mapContainer {
+      width: 100%;
+      height: 80%;
+
+      /* Those are required to clip html overlays */
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #featureSelectionContainer {
+      /* Required to work properly as map overlay */
+      position: absolute;
+      display: none;
+
+      /* optional design stuff */
+      background-color: white;
+      padding: 5px;
+    }
   </style>
+  <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
   <script src="../frontend/utils.js"></script>
   <script src="../frontend/affinetransform.js"></script>
   <script src="../frontend/pinchzoom.js"></script>
@@ -15,181 +34,128 @@
   <script src="../frontend/TileLayer.js"></script>
   <script src="../frontend/POILayer.js"></script>
   <script src="../frontend/ArrowLayer.js"></script>
+  <script src="../frontend/htmlinterface.js"></script>
+  <script src="geojsondata.js"></script>
 </head>
 
 <body>
-    <canvas id="viewer">
-    	Your browser is too old.
-    </canvas>
-    <button type="button" onclick="poiLayer.zoomOnVisibleFeatures(.00002);">O</button>
+    <!-- Le div qui instancie la carte contient un enfant qui va servir pour
+         la selection. -->
+    <div id="mapContainer"
+    data-map-url="http://a.tile2.opencyclemap.org/transport/$scale/$x/$y.png"
+    data-map-maxScale=0.0011521587604736983
+    data-map-minScale=0.00001464046235355454
+    data-map-minX=0.5131089350307448
+    data-map-maxX=0.5144314546266167
+    data-map-minY=0.32815094051421756
+    data-map-maxY=0.32898929245510206
+    data-map-initialLocation="{x:0.5136229387648525,y:0.32859961404591626,scale:0.00014809229409828983}"
+    data-map-onLocationChange="onLocationChange"
+    data-map-onInitialized="onRendererInitialized"
+    >
+      <!-- Le contenu sera défini plus tard, le placement aussi.
+           on pourrait ajouter et enlever cet element plutot que de 
+           le montrer et le cacher. Dans ce cas, ce serait à jquery
+           (ou angular) de créer l'élément.
+      -->
+      <div id="featureSelectionContainer" data-map-anchor=".5,-.3"></div>
+    </div>
+
     <div id="location"></div>
     <script>
 
-var geojson = 
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {
-        "stroke": "#d34356",
-        "stroke-width": 4,
-        "fill": "rgba(255, 255, 255, .5)"
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [ 4.895439147949219, 52.376332744462054 ],
-            [ 4.900932312011719, 52.37675192059285 ],
-            [ 4.901790618896484, 52.37339840013861 ],
-            [ 4.895954132080078, 52.37329359852117 ],
-            [ 4.898185729980469, 52.375179989586506 ],
-            [ 4.895439147949219, 52.376332744462054 ]
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "NameLocal": "Blauwbrug",
-        "NameEN": "Blauwbrug (Blue Bridge)",
-        "NameDE": "Blauwbrug (Blaue Brücke)",
-        "NameFR": "Blauwbrug (Pont bleu)",
-        "CategoryID": 12,
-        "SubCategoryID": 62,
-        "Category": "Architecture",
-        "SubCategory": "19th century",
-        icon: "nightlife"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [ 4.900905, 52.366326 ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "text": "Canal Tour",
-        "NameEN": "Canal Tour",
-        "NameDE": "Grachtenrundfahrt",
-        "NameFR": "Tour des canaux",
-        "CategoryID": 11,
-        "SubCategoryID": 25,
-        "Category": "Viewpoint",
-        "SubCategory": "Other"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [ 4.802361, 52.423277 ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "text": "Centraal Station",
-        "NameEN": "Centraal Station",
-        "NameDE": "Centraal Station",
-        "NameFR": "Centraal Station",
-        "CategoryID": 1,
-        "SubCategoryID": 75,
-        "Category": "Urban",
-        "SubCategory": "Railway station",
-        icon: "visit"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [ 4.900482, 52.379057 ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "text": "Concertgebouw",
-        "NameEN": "Concertgebouw",
-        "NameDE": "Concertgebouw",
-        "NameFR": "Concertgebouw",
-        "CategoryID": 4,
-        "SubCategoryID": 93,
-        "Category": "Culture",
-        "SubCategory": "Theatre / Concert hall / Opera",
-        icon: "restaurant"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [ 4.879153, 52.356263 ]
-      }
-    },
-  {
-      "type": "Feature",
-      "properties": {
-        "stroke": "rgba(255,0,0,.5)",
-        "stroke-width": 8,
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [ 4.890203475952148, 52.371407126882495 ],
-          [ 4.892177581787109, 52.37575637078554 ],
-          [ 4.895524978637695, 52.37769505233968 ],
-          [ 4.8992156982421875, 52.376804317329444 ],
-          [ 4.901018142700195, 52.375232388188174 ],
-          [ 4.900245666503905, 52.37355560209848 ]
-        ]
-      }
+
+function onLocationChange (canvasTilesRenderer) {
+  var location = canvasTilesRenderer.getLocation();
+  document.getElementById("location").innerHTML = 
+    "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+}
+
+
+// This function prepares the map (it adds layers) and define its behavior:
+// what happens when clicking on a feature? How selected elements are visually
+// shown as selected?
+function onRendererInitialized(canvasTilesRenderer) {
+  var selection;
+
+  function featureSelected(feature) {
+    var properties = feature.properties;
+    properties.circled = true;
+    properties.renderOnTop = true;
+
+    var pos = geojsonGetCoordinates(feature);
+
+    if (properties.selectedHtml) {
+      $('#featureSelectionContainer')
+        .html(properties.selectedHtml)
+        .attr('data-map-pos', pos.x + ',' + pos.y)
+        .show();
+      canvasTilesRenderer.refreshHtmlElements();
+
+      properties.textBubble = true;
+      properties.text = ' ';
+      properties.textOffset = 30;
+      properties.textPlacement = 'S';
+    } else if (properties.selectedText) {
+      properties.textBubble = true;
+      properties.text = properties.selectedText;
+      properties.textOffset = 30;
+    } else {
+      properties.hideText = true;
+      arrowLayer.setPoint(pos);
     }
-  ]
-};
-    	var canvasTilesRenderer = new CanvasTilesRenderer({
-            canvas: document.getElementById("viewer"),
-    	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
-    	    initialLocation: {x:0.5136229387648525,y:0.32859961404591626,scale:0.00014809229409828983},
-    	    onLocationChange: function(canvasTilesRenderer) {
-    	      var location = canvasTilesRenderer.getLocation();
-    	      document.getElementById("location").innerHTML = 
-    	        "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
-    	    },
-            maxScale: 0.0011521587604736983,
-            minScale: 0.00001464046235355454,
-            minX: 0.5131089350307448,
-            maxX: 0.5144314546266167,
-            minY: 0.32815094051421756,
-            maxY: 0.32898929245510206
-    	  });
+  }
 
-        // Layers will be drawn in the order they are defined.
-        // Here, the POI will cover the arrow.
-        var arrowLayer = new ArrowLayer({
-          renderer: canvasTilesRenderer,
-          color: 'rgba(60,20,30,.5)'
-          });
+  function featureDeselected(feature) {
+    var properties = feature.properties;
+    properties.circled = false;
+    properties.renderOnTop = false;
+    arrowLayer.setPoint(undefined);
 
-        var poiLayer = new POILayer({
-          renderer: canvasTilesRenderer,
-          geojson: geojson,
-          onFeatureClic: function(feature, pos) {
-            if (feature) {
-              forEachFeature(geojson, function(f) {
-                 f.properties.circled = false;
-              });
-              feature.properties.circled = true;
-              arrowLayer.setPoint(geojsonGetCoordinates(feature));
-            } else {
-              arrowLayer.setPoint(undefined);
-            }
+    if (properties.selectedHtml) {
+      $('#featureSelectionContainer').hide();
+      properties.textBubble = false;
+    } else if (properties.selectedText) {
+      properties.textBubble = false;
+      properties.text = undefined;
+    }
 
-            canvasTilesRenderer.refresh();
-          }
-        });
-        poiLayer.loadIcon("nightlife", "Nightlife.png");
-        poiLayer.loadIcon("restaurant", "Restaurant.png", {
-          width: 128,
-          height: 128,
-          ratioX: .5,
-          ratioY: 1.5
-        });
-        poiLayer.loadIcon("visit", "Visit.png");
+    if (properties.hideText) {
+      properties.hideText = false;
+    }
+  }
+
+  var poiLayer = new POILayer({
+    renderer: canvasTilesRenderer,
+    geojson: geojson,
+    onFeatureClic: function(feature, pos) {
+      if (selection) {
+         featureDeselected(selection);
+      }
+      if (feature) {
+        selection = feature;
+        featureSelected(feature);
+      }
+      canvasTilesRenderer.refresh();
+    }
+  });
+
+  // Layers will be drawn in the order they are defined.
+  // Here, the arrow will cover the POI.
+  var arrowLayer = new ArrowLayer({
+    renderer: canvasTilesRenderer,
+    color: 'rgba(255,255,255,1)'
+    });
+
+  poiLayer.loadIcon("nightlife", "Nightlife.png");
+  poiLayer.loadIcon("restaurant", "Restaurant.png", {
+    width: 40,
+    height: 40,
+    ratioX: .5,
+    ratioY: 1
+  });
+  poiLayer.loadIcon("visit", "Visit.png");
+}
 
     </script>
 </body>
