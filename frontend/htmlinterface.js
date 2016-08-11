@@ -8,7 +8,7 @@ window.addEventListener("load", function load(event){
 var MapHtmlInterface = {
   paramNames: ["url", "width", "height", "debug", "minScale", "tileSize",
                "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS",
-               "initialLocation", "onLocationChange", "geoConv", "maxScale", "maxX", "maxY", "minY", "minX"],
+               "initialLocation", "onLocationChange", "geoConv", "maxScale", "maxX", "maxY", "minY", "minX", "onInitialized"],
   stringParamNames: {"url": true},
 
   init: function() {
@@ -23,9 +23,9 @@ var MapHtmlInterface = {
     if (!canvas) {
       canvas = document.createElement('canvas');
       container.insertBefore(canvas, container.childNodes[0]);
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
     }
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
     canvas.innerHtml = "Your browser does not support CANVAS.";
 
     var params = {
@@ -63,6 +63,10 @@ var MapHtmlInterface = {
     }
     var canvasTilesRenderer = new CanvasTilesRenderer(params);
 
+    canvasTilesRenderer.refreshHtmlElements = function() {
+        MapHtmlInterface.placeMarks(this.container, this);
+    };
+
     canvasTilesRenderer.resizeListener = function() {
       canvasTilesRenderer.refresh();
     };
@@ -72,6 +76,9 @@ var MapHtmlInterface = {
 
     canvasTilesRenderer.container = container;
 
+    if (params.onInitialized) {
+      params.onInitialized(canvasTilesRenderer);
+    }
     return canvasTilesRenderer;
   },
 
@@ -84,6 +91,9 @@ var MapHtmlInterface = {
   },
 
   placeMarks: function(container, canvasTilesRenderer) {
+    if (!canvasTilesRenderer) {
+      canvasTilesRenderer = container.canvasTilesRenderer;
+    }
     var worldToElement = function(x, y) {
       var canvas = canvasTilesRenderer.params.canvas;
       var canvasPos = canvasTilesRenderer.pinchZoom.viewerPosFromWorldPos(x, y);
@@ -170,5 +180,8 @@ var MapHtmlInterface = {
         child.style.display = display;
       }
     }
+  },
+  getRenderer: function(element) {
+    return element.canvasTilesRenderer;
   }
 };
