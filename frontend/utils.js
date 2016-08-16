@@ -92,6 +92,12 @@ this.Utils = {
       y: ((1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2)
     };
   },
+  worldToLatLon: function(osm) {
+    var lon_deg = osm.x * 360.0 - 180.0;
+    var n = Math.PI-2*Math.PI*osm.y;
+    var lat_deg = (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))));
+    return {lat: lat_deg, lon: lon_deg};
+  },
 
 
   worldToTile: function(scale, coord) {

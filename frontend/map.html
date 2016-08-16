@@ -8,13 +8,14 @@
     body {margin: 0; width: 100%; height: 100%; overflow:hidden; }
     #container { position:relative; width: 100%; height: 100%; }
     #header { position: absolute; left: 5px; top: 5px; height:25px; }
-    canvas { width:99%; height:99%; position: absolute; top:60px; }
+    canvas { width:99%; position: absolute; top:50px; bottom:50px; }
   </style>
   <script src="utils.js"></script>
   <script src="affinetransform.js"></script>
   <script src="pinchzoom.js"></script>
   <script src="CanvasTilesRenderer.js"></script>
   <script src="TileLayer.js"></script>
+  <script src="ScaleLayer.js"></script>
 </head>
 
 <body>
@@ -50,11 +51,14 @@
     	    }
     	  });
 
+  var scale = new ScaleLayer({maxDist: 999}, canvasTilesRenderer);
+  canvasTilesRenderer.addLayer(scale);
+
       var resize = function() {
         var viewer = document.getElementById('viewer');
         var container = document.getElementById('container');
         var header = document.getElementById('header');
-        viewer.style.height = (container.offsetHeight - 5 - header.offsetTop) + 'px';
+        viewer.style.height = (container.offsetHeight - 50) + 'px';
         canvasTilesRenderer.refresh();
       };
       window.onresize = resize;
