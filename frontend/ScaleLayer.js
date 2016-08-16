@@ -27,8 +27,8 @@ ScaleLayer.prototype.draw = function(canvas, pinchZoom,
   var earthCircumference = 40075.017; // in km
   var xToKm = earthCircumference * Math.cos(latLon.lat * Math.PI / 180);
   var scaleWorld =
-    Math.max(pinchZoom.topLeftWorld().x, bboxBottomRight.x)
-    - Math.min(pinchZoom.bottomRightWorld().y, bboxTopLeft.x);
+    Math.min(pinchZoom.bottomRightWorld().x, bboxBottomRight.x)
+    - Math.max(pinchZoom.topLeftWorld().x, bboxTopLeft.x);
 
   var scaleKm = nice(scaleWorld / 4 * xToKm);
 
