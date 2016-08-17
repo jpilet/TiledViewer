@@ -9,7 +9,8 @@
     "frontend/TileLayer.js",
     "frontend/POILayer.js",
     "frontend/ArrowLayer.js",
-    "frontend/htmlinterface.js"
+    "frontend/htmlinterface.js",
+    "frontend/ScaleLayer.js"
   ],
   "ignore": [
     ".*",
