@@ -48,13 +48,13 @@ ScaleLayer.prototype.draw = function(canvas, pinchZoom,
     pinchZoom.viewerPosFromWorldPos(pinchZoom.bottomRightWorld());
 
   var startViewer = {
-    x: Math.max(0, topLeftViewer.x) + margin,
-    y: Math.min(bottomRightViewer.y, canvas.height) - margin
+    x: Math.min(canvas.width, bottomRightViewer.x) - margin,
+    y: Math.max(topLeftViewer.y, 0) + margin
   };
 
   var startWorld = pinchZoom.worldPosFromViewerPos(startViewer);
   var endWorld = {
-    x: startWorld.x + scaleKm / xToKm,
+    x: startWorld.x - scaleKm / xToKm,
     y: startWorld.y
   };
   var endViewer = pinchZoom.viewerPosFromWorldPos(endWorld);
@@ -78,19 +78,18 @@ ScaleLayer.prototype.draw = function(canvas, pinchZoom,
 
   context.moveTo(startViewer.x, startViewer.y - dy);
   context.lineTo(startViewer.x, startViewer.y + dy);
-  
+
   context.moveTo(endViewer.x, endViewer.y - dy);
   context.lineTo(endViewer.x, endViewer.y + dy);
 
   context.stroke();
 
 
-  context.textAlign = 'start';
+  context.textAlign = 'end';
   context.textBaseline = 'bottom';
   var fontSize = 12;
   context.font = (fontSize * this.renderer.pixelRatio) + 'px '
       + 'Roboto, "Helvetica Neue", HelveticaNeue, "Helvetica-Neue", Helvetica, Arial, "Lucida Grande", sans-serif';
   context.fillStyle = '#000000';
-  context.fillText(formatScale(scaleKm), startViewer.x + dy, startViewer.y);
+  context.fillText(formatScale(scaleKm), startViewer.x - dy, startViewer.y + (14 * pixelRatio));
 };
-
