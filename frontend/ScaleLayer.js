@@ -3,6 +3,11 @@ function ScaleLayer(params, renderer) {
   this.params = params || {};
   this.sizeRatio = this.params.sizeRatio || .3;
   this.margin = this.params.margin || 15;
+
+  this.verticalPlacement = params.verticalPlacement || 'top';
+  this.horizontalPlacement = params.horizontalPlacement || 'right';
+  this.shadowColor = params.shadowColor || 'rgba(255,255,255,.8)';
+  this.scaleColor = params.scaleColor || '#000000';
 }
 
 function nice(x) {
@@ -48,20 +53,24 @@ ScaleLayer.prototype.draw = function(canvas, pinchZoom,
     pinchZoom.viewerPosFromWorldPos(pinchZoom.bottomRightWorld());
 
   var startViewer = {
-    x: Math.max(0, topLeftViewer.x) + margin,
-    y: Math.min(bottomRightViewer.y, canvas.height) - margin
+    x: (this.horizontalPlacement == 'right' ?
+        Math.min(canvas.width, bottomRightViewer.x) - margin
+        : Math.max(0, topLeftViewer.x) + margin),
+    y: (this.verticalPlacement == 'top' ?
+        Math.max(topLeftViewer.y, 0) + margin
+        : Math.min(bottomRightViewer.y, canvas.height) - margin)
   };
 
   var startWorld = pinchZoom.worldPosFromViewerPos(startViewer);
   var endWorld = {
-    x: startWorld.x + scaleKm / xToKm,
+    x: startWorld.x + scaleKm / xToKm * (this.horizontalPlacement == 'right' ? -1 : 1),
     y: startWorld.y
   };
   var endViewer = pinchZoom.viewerPosFromWorldPos(endWorld);
   endViewer.x = Math.round(endViewer.x);
   endViewer.y = Math.round(endViewer.y);
 
-  if (endViewer.x > canvas.width) {
+  if (endViewer.x > canvas.width || endViewer.x <= margin) {
     // oops.. the screen is too thin.
     return;
   }
@@ -70,27 +79,37 @@ ScaleLayer.prototype.draw = function(canvas, pinchZoom,
 
   var dy = 4 * pixelRatio;
 
-  context.strokeStyle = "#000000";
-  context.lineWidth = 1 * pixelRatio;
-  context.beginPath();
-  context.moveTo(startViewer.x, startViewer.y);
-  context.lineTo(endViewer.x, endViewer.y);
+  for (var pass = 0; pass < 2; ++pass) {
+    context.strokeStyle = (pass == 0 ? this.shadowColor : this.scaleColor);
+    context.lineWidth = (pass == 0 ? 3 : 1) * pixelRatio;
 
-  context.moveTo(startViewer.x, startViewer.y - dy);
-  context.lineTo(startViewer.x, startViewer.y + dy);
-  
-  context.moveTo(endViewer.x, endViewer.y - dy);
-  context.lineTo(endViewer.x, endViewer.y + dy);
+    context.beginPath();
+    context.moveTo(startViewer.x, startViewer.y);
+    context.lineTo(endViewer.x, endViewer.y);
 
-  context.stroke();
+    context.moveTo(startViewer.x, startViewer.y - dy);
+    context.lineTo(startViewer.x, startViewer.y + dy);
 
+    context.moveTo(endViewer.x, endViewer.y - dy);
+    context.lineTo(endViewer.x, endViewer.y + dy);
 
-  context.textAlign = 'start';
-  context.textBaseline = 'bottom';
+    context.stroke();
+  }
+
+  context.textAlign = (this.horizontalPlacement == 'right' ? 'end' : 'start');
+  context.textBaseline = (this.verticalPlacement == 'top' ? 'top' : 'bottom');
+
   var fontSize = 12;
   context.font = (fontSize * this.renderer.pixelRatio) + 'px '
       + 'Roboto, "Helvetica Neue", HelveticaNeue, "Helvetica-Neue", Helvetica, Arial, "Lucida Grande", sans-serif';
-  context.fillStyle = '#000000';
-  context.fillText(formatScale(scaleKm), startViewer.x + dy, startViewer.y);
-};
+  var text = formatScale(scaleKm);
+  var textX = startViewer.x + dy * (this.horizontalPlacement == 'right' ? -1 : 1);
+  var textY = startViewer.y;
 
+  context.strokeStyle = this.shadowColor;
+  context.lineWidth = 3 * this.renderer.pixelRatio;
+  context.strokeText(text, textX, textY);
+
+  context.fillStyle = this.scaleColor;
+  context.fillText(text, textX, textY);
+};
