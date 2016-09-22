@@ -1,0 +1,32 @@
+{
+  "name": "tiledviewer",
+  "version": "1.0.0",
+  "description": "Julien Pilet's slippy map engine",
+  "main": "nodeinterface.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jpilet/TiledViewer.git"
+  },
+  "keywords": [
+    "slippy",
+    "map"
+  ],
+  "author": "Julien Pilet",
+  "license": "all rights reserved",
+  "bugs": {
+    "url": "https://github.com/jpilet/TiledViewer/issues"
+  },
+  "homepage": "https://github.com/jpilet/TiledViewer#readme",
+  "dependencies": {
+    "bezier-js": "^2.2.1",
+    "cached-request": "^1.1.0",
+    "canvas": "^1.5.0",
+    "request": "^2.75.0"
+  }
+}
