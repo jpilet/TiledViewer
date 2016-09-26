@@ -29,6 +29,8 @@ function CanvasTilesRenderer(params) {
   this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 15;
   this.params.downsampleDuringMotion = false;
 
+  this.pixelRatio = params.forceDevicePixelRatio || 1;
+
   this.layers = [
     new TileLayer(params, this)
   ];
@@ -63,16 +65,24 @@ function CanvasTilesRenderer(params) {
   this.params.width,
   this.params.height);
   this.pinchZoom.minScale = this.params.minScale;
-  if (this.params.maxScale) { this.pinchZoom.maxScale = this.params.maxScale; }
-  if (this.params.maxX) { this.pinchZoom.maxX = this.params.maxX; }
-  if (this.params.maxY) { this.pinchZoom.maxY = this.params.maxY; }
-  if (this.params.minX) { this.pinchZoom.minX = this.params.minX; }
-  if (this.params.minY) { this.pinchZoom.minY = this.params.minY; }
+
+  ['maxScale', 'maxX', 'maxY', 'minX', 'minY'].forEach(function(key) {
+    if (key in t.params) {
+      t.pinchZoom[key] = t.params[key];
+    }
+  });
 
   // We are ready, let's allow drawing.  
   this.inDraw = false;
+
+  t.clicHandlers = [];
+  t.pinchZoom.onClic = function(pos) {
+    for(var i=0; i<t.clicHandlers.length; i++) {
+      if(t.clicHandlers[i](pos))
+        return false;
+    }
+  }
   
-  this.pinchZoom.onClic = function(pos) { };
 
   var location = params.initialLocation || {
     x: (this.params.width || 1) / 2,
@@ -85,6 +95,10 @@ function CanvasTilesRenderer(params) {
 CanvasTilesRenderer.prototype.addLayer = function(layer) {
   this.layers.push(layer);
   this.refreshIfNotMoving();
+};
+
+CanvasTilesRenderer.prototype.addClicHandler = function(func) {
+  this.clicHandlers.push(func);
 };
 
 /** Get the current view location.
@@ -304,3 +318,16 @@ CanvasTilesRenderer.prototype.refreshIfNotMoving = function() {
     this.refresh();
   }
 }
+
+// loadImage might be overloaded when rendering outside of a browser,
+// for example with node-canvas.
+CanvasTilesRenderer.prototype.loadImage = function(url, success, failure) {
+  var image = new Image();
+  image.src = url;
+  image.onload = function() {
+    success(image);
+  };
+  image.onerror = function(err) {
+    failure(err);
+  };
+};

@@ -16,14 +16,37 @@ function PinchZoom(element, transformChanged, width, height) {
   
   var t = this;
   var e = element;
-  e.addEventListener("touchstart", function(event) { t.handleStart(event); }, false);
-  e.addEventListener("touchend", function(event) { t.handleEnd(event); }, false);
-  e.addEventListener("touchcancel", function(event) { t.handleEnd(event); }, false);
-  e.addEventListener("touchmove", function(event) { t.handleMove(event); }, false);
-  e.addEventListener("mousedown", function(event) { t.handleMouseDown(event); }, false);
-  e.addEventListener("mousemove", function(event) { t.handleMouseMove(event); }, false);
-  e.addEventListener("mouseup", function(event) { t.handleMouseUp(event); }, false);
-  addWheelListener(element, function(event) { t.handleMouseWheel(event); });
+
+  this.currentTouchEventHandler = this;
+  this.touchEventHandlers = [ this ];
+
+  e.addEventListener("touchstart", function(event) {
+      t.selectEventHandlerTouchStart(event);
+      t.currentTouchEventHandler.handleStart(event);
+    }, false);
+  e.addEventListener("touchend", function(event) {
+      t.currentTouchEventHandler.handleEnd(event);
+    }, false);
+  e.addEventListener("touchcancel", function(event) {
+      t.currentTouchEventHandler.handleEnd(event);
+    }, false);
+  e.addEventListener("touchmove", function(event) {
+      t.currentTouchEventHandler.handleMove(event);
+    }, false);
+  e.addEventListener("mousedown", function(event) {
+      t.selectEventHandlerMouse(event, 'mouseDown');
+      t.currentTouchEventHandler.handleMouseDown(event);
+    }, false);
+  e.addEventListener("mousemove", function(event) {
+      t.currentTouchEventHandler.handleMouseMove(event);
+    }, false);
+  e.addEventListener("mouseup", function(event) {
+      t.currentTouchEventHandler.handleMouseUp(event);
+    }, false);
+  addWheelListener(element, function(event) {
+      t.selectEventHandlerMouse(event, 'wheel');
+      t.currentTouchEventHandler.handleMouseWheel(event);
+    });
   
   element.pinchZoomInstance = this;
   this.element = element;
@@ -105,6 +128,26 @@ PinchZoom.prototype.clicPosFromViewerPos = function(viewerPos) {
     };
 };
 
+PinchZoom.prototype.acceptTouchEvent = function() { return true; };
+
+PinchZoom.prototype.selectEventHandlerMouse = function(event, type) {
+  event.preventDefault();
+  var viewerPos = Utils.eventPosInElementCoordinates(
+      event, this.element);
+  this.selectEventHandler(viewerPos, type);
+};
+
+PinchZoom.prototype.selectEventHandler = function(viewerPos, type) {
+  var worldPos = this.worldPosFromViewerPos(viewerPos.x, viewerPos.y);
+
+  for (var i = this.touchEventHandlers.length - 1; i >= 0; --i) {
+    if (this.touchEventHandlers[i].acceptTouchEvent(viewerPos, worldPos, type)) {
+      this.currentTouchEventHandler = this.touchEventHandlers[i];
+      return;
+    }
+  }
+};
+
 PinchZoom.prototype.handleMouseDown = function(event) {
   var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
 
@@ -163,6 +206,18 @@ PinchZoom.prototype.handleMouseWheel = function(event) {
   
   this.transform.scale(scaleFactor);
   this.processConstraints(constraints);
+};
+
+PinchZoom.prototype.selectEventHandlerTouchStart = function(event) {
+  event.preventDefault();
+  if (event.touches.length != 1) {
+    // no change in event handler if touches are already ongoing
+    return;
+  }
+
+  var viewerPos = Utils.eventPosInElementCoordinates(
+      event.touches[0], this.element);
+  this.selectEventHandler(viewerPos, 'touchStart');
 };
 
 PinchZoom.prototype.handleStart = function(event) {

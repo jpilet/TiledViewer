@@ -1,0 +1,94 @@
+<!doctype html>
+
+<head>
+  <title>Trip map editor</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <style>
+    body {margin: 0; overflow: hidden; }
+    html,body { width: 100%; height: 100%; }
+
+    #mapContainer {
+      width: 100%;
+      height: 80%;
+
+      /* Those are required to clip html overlays */
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #featureSelectionContainer {
+      /* Required to work properly as map overlay */
+      position: absolute;
+      display: none;
+
+      /* optional design stuff */
+      background-color: white;
+      padding: 5px;
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+  <script src="../frontend/utils.js"></script>
+  <script src="../frontend/affinetransform.js"></script>
+  <script src="../frontend/pinchzoom.js"></script>
+  <script src="../frontend/CanvasTilesRenderer.js"></script>
+  <script src="../frontend/TileLayer.js"></script>
+  <script src="../frontend/htmlinterface.js"></script>
+  <script src="TripGraph.js"></script>
+  <script src="TripGraphLayer.js"></script>
+  <script src="TripGraphEditor.js"></script>
+  <script src="node_modules/bezier-js/bezier.js"></script>
+</head>
+
+<body>
+    <!-- Le div qui instancie la carte contient un enfant qui va servir pour
+         la selection. -->
+    <div id="mapContainer"
+    data-map-url="https://tiles.wmflabs.org/bw-mapnik/$scale/$x/$y.png"
+    data-map-initialLocation="{x:0.5137435332434739,y:0.32862555455727877,scale:0.0002892879213498567}"
+    data-map-onLocationChange="onLocationChange"
+    data-map-onInitialized="onRendererInitialized"
+    >
+      <!-- Le contenu sera défini plus tard, le placement aussi.
+           on pourrait ajouter et enlever cet element plutot que de 
+           le montrer et le cacher. Dans ce cas, ce serait à jquery
+           (ou angular) de créer l'élément.
+      -->
+      <div id="featureSelectionContainer" data-map-anchor=".5,-.3"></div>
+    </div>
+
+    <div id="location"></div>
+    <script>
+
+
+function onLocationChange (canvasTilesRenderer) {
+  var location = canvasTilesRenderer.getLocation();
+  document.getElementById("location").innerHTML = 
+    "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
+}
+
+function onRendererInitialized(canvasTilesRenderer) {
+
+  var graph = TripGraph.createFromStopovers([
+      { name: 'A', coord: [ 0.5137081056967938, 0.3285825337142506 ], label: 'One' },
+      { name: 'B', coord: [ 0.5137305609845453, 0.3285931138521079 ], label: 'Two' },
+      { name: 'C', coord: [ 0.5137481056967938, 0.3286025337142506 ], label: 'Three' },
+      { name: 'D', coord: [ 0.5137381056967938, 0.3286125337142506 ], label: 'Four' },
+      { name: 'E', coord: [ 0.5137081056967938, 0.3286225337142506 ], label: 'Five' },
+      { name: 'F', coord: [ 0.5137181056967938, 0.3286425337142506 ], label: 'Six' }
+    ]);
+
+  var tripLayer = new TripGraphLayer({
+    renderer: canvasTilesRenderer,
+    graph: graph
+  });
+
+  canvasTilesRenderer.addLayer(tripLayer);
+
+  var editor = new TripGraphEditor(canvasTilesRenderer, graph);
+  canvasTilesRenderer.pinchZoom.touchEventHandlers.push(editor);
+  
+}
+
+    </script>
+</body>
+</html>

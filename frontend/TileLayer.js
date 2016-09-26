@@ -191,29 +191,28 @@ TileLayer.prototype.processQueue = function() {
     if ((this.numDraw - query.tile.lastDrawRequest) < 3) {
       this.numLoading++;
         
-      var image = new Image();
-      image.src = query.url;
       query.tile.state = "loading";
-      query.tile.image = image;
-      
+
       // Force the creation of a new scope to make sure
       // a new closure is created for every "query" object. 
-      var f = (function(t, image, query) {
-        image.onload = function() { 
-          t.numLoading--;
-          t.numCachedTiles++;
-          query.tile.state = "loaded";
-          t.renderer.refreshIfNotMoving();
-        };
-        image.onerror = function(err) {
-          t.numLoading--;
-          query.tile.state = "failed";
-          delete query.tile.image;
-          console.log('Failed to load: ' + query.url);
-          t.processQueue();
-        };  
-      })(this, image, query);
-      
+      var f = (function(t, query) {
+        t.renderer.loadImage(query.url,
+          function(image) {
+            t.numLoading--;
+            t.numCachedTiles++;
+            query.tile.state = "loaded";
+            query.tile.image = image;
+            t.renderer.refreshIfNotMoving();
+          },
+          function(error) {
+            console.log('Failed to load image: ' + query.url + ': ' + error);
+            t.numLoading--;
+            query.tile.state = "failed";
+            t.processQueue();
+          });
+      })(this, query);
+
+
     } else {
       // There's no need to load this tile, it is not required anymore.
       delete this.tiles[query.key];
