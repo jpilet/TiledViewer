@@ -2,7 +2,9 @@
 var Canvas = require('canvas');
 var fs = require('fs');
 var vm = require('vm');
-var CanvasTilesRenderer = require('../nodeinterface.js');
+
+var OffscreenTileRenderer = require('../frontend/OffscreenTileRenderer.js')
+  .OffscreenTileRenderer;
 
 Bezier = require('bezier-js');
 
@@ -18,7 +20,7 @@ var format = 'pdf';
 var canvas = new Canvas(800, 600, format);
 
 
-var canvasTilesRenderer = CanvasTilesRenderer.create({
+var renderer = new OffscreenTileRenderer({
   canvas: canvas,
   forceDevicePixelRatio: 1,
   initialLocation: {x:0.5137435332434739,y:0.32862555455727877,scale:0.0002892879213498567},
@@ -35,13 +37,18 @@ var graph = TripGraph.createFromStopovers([
   ]);
 
 var tripLayer = new TripGraphLayer({
-  renderer: canvasTilesRenderer,
+  renderer: renderer,
   graph: graph
 });
 
-canvasTilesRenderer.addLayer(tripLayer);
+renderer.addLayer(tripLayer);
 
-canvasTilesRenderer.render(function() {
-  fs.writeFile('out.' + format, canvas.toBuffer());
+renderer.render(function(err) {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  } else {
+    fs.writeFile('out.' + format, canvas.toBuffer());
+  }
 });
 
