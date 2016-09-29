@@ -125,7 +125,7 @@ CanvasTilesRenderer.prototype.getLocation = function() {
  */
 CanvasTilesRenderer.prototype.setLocation = function(location) {
   if (isNaN(location.x) || isNaN(location.y) || isNaN(location.scale)) {
-    throw('invalid location');
+    throw(new Error('invalid location'));
   }
   var canvas = this.canvas;
   var ratio = [
@@ -327,7 +327,9 @@ CanvasTilesRenderer.prototype.loadImage = function(url, success, failure) {
   image.onload = function() {
     success(image);
   };
-  image.onerror = function(err) {
-    failure(err);
-  };
+  if (failure) {
+    image.onerror = function(err) {
+      failure(err);
+    };
+  }
 };

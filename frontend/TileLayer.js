@@ -23,6 +23,7 @@ function TileLayer(params, renderer) {
   if (!this.params.maxNumCachedTiles) this.params.maxNumCachedTiles = 64;
   if (!this.params.maxSimultaneousLoads) this.params.maxSimultaneousLoads = 3;
 
+  this.maxUpLevels = this.params.maxUpLevels || 5;
 
 }
 
@@ -99,7 +100,7 @@ TileLayer.prototype.renderTile = function(scale, tileX, tileY, context, tileGeom
     return;
   }
 
-  for (var upLevel = 0; upLevel <= scale && upLevel < 5; ++upLevel) {
+  for (var upLevel = 0; upLevel <= scale && upLevel < this.maxUpLevels; ++upLevel) {
     var upTileX = tileX >> upLevel;
     var upTileY = tileY >> upLevel;
     
