@@ -26,7 +26,7 @@
       padding: 5px;
     }
   </style>
-  <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+  <script src="jquery.js"></script>
   <script src="../frontend/utils.js"></script>
   <script src="../frontend/affinetransform.js"></script>
   <script src="../frontend/pinchzoom.js"></script>
@@ -36,7 +36,8 @@
   <script src="TripGraph.js"></script>
   <script src="TripGraphLayer.js"></script>
   <script src="TripGraphEditor.js"></script>
-  <script src="node_modules/bezier-js/bezier.js"></script>
+  <script src="../node_modules/bezier-js/bezier.js"></script>
+  <script src="D3-Labeler/labeler.js"></script>
 </head>
 
 <body>
@@ -56,7 +57,17 @@
       <div id="featureSelectionContainer" data-map-anchor=".5,-.3"></div>
     </div>
 
-    <div id="location"></div>
+    <footer>
+      <button type="button" onclick="setFrame();">Frame</button>
+      <button type="button" onclick="placeLabels();">Place labels</button>
+      <button type="button" onclick="resetCurves();">Reset curves</button>
+      <span id="location"></span>
+      <select id="pageSizeSelector" name="pageSize">
+        <option value="210x148" selected>A5 landscape</option>
+        <option value="148x210">A5 portrait</option>
+        <option value="105x74" selected>A6 landscape</option>
+      </select>
+    </footer>
     <script>
 
 
@@ -66,8 +77,41 @@ function onLocationChange (canvasTilesRenderer) {
     "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
 }
 
+var setFrame;
+var placeLabels;
+var resetCurves;
+
 function onRendererInitialized(canvasTilesRenderer) {
 
+  function latLonToCoord(lat, lon) {
+    var p = Utils.latLonToWorld([lon, lat]);
+    return [p.x, p.y];
+  };
+
+  /*
+  var graph = TripGraph.createFromStopovers([
+    { name: 1, label: 'Venice', coord: latLonToCoord(45.440847, 12.315515) },
+    { name: 2, label: 'Dubrovnik', coord: latLonToCoord(42.650661, 18.094424) },
+    { name: 3, label: 'Valetta', coord: latLonToCoord(35.898908, 35.898908) },
+    { name: 4, label: 'Santorin', coord: latLonToCoord(36.385418, 25.42958) },
+    { name: 5, label: 'Athens', coord: latLonToCoord(37.98381, 23.727539) },
+    { name: 6, label: 'Istanbul', coord: latLonToCoord(41.008238, 28.978359) }
+  ]);
+  */
+  
+  var graph = TripGraph.createFromStopovers([
+    { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
+    { name: 2, label: 'Sapa', coord: latLonToCoord(22.339931, 103.852319) },
+    { name: 3, label: 'Thanh Phu', coord: latLonToCoord(22.28276, 103.92579) },
+    { name: 4, label: 'Sin Chai', coord: latLonToCoord(22.263698, 103.991708) },
+    { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
+    { name: 6, label: 'Halong', coord: latLonToCoord(20.792083, 106.939477) },
+    { name: 7, label: 'Tam Coc', coord: latLonToCoord(20.243855, 105.925645) },
+    { name: 8, label: 'Hoi-An', coord: latLonToCoord(15.871443, 108.382874) },
+    { name: 9, label: 'Saigon', coord: latLonToCoord(10.85653, 106.726685) }
+  ]);
+  
+  /*
   var graph = TripGraph.createFromStopovers([
       { name: 'A', coord: [ 0.5137081056967938, 0.3285825337142506 ], label: 'One' },
       { name: 'B', coord: [ 0.5137305609845453, 0.3285931138521079 ], label: 'Two' },
@@ -76,6 +120,7 @@ function onRendererInitialized(canvasTilesRenderer) {
       { name: 'E', coord: [ 0.5137081056967938, 0.3286225337142506 ], label: 'Five' },
       { name: 'F', coord: [ 0.5137181056967938, 0.3286425337142506 ], label: 'Six' }
     ]);
+    */
 
   var tripLayer = new TripGraphLayer({
     renderer: canvasTilesRenderer,
@@ -86,7 +131,48 @@ function onRendererInitialized(canvasTilesRenderer) {
 
   var editor = new TripGraphEditor(canvasTilesRenderer, graph);
   canvasTilesRenderer.pinchZoom.touchEventHandlers.push(editor);
-  
+
+  setFrame = function() {
+    var canvas = canvasTilesRenderer.canvas;
+    canvasTilesRenderer.setLocation(graph.location(canvas.width/canvas.height,
+                                                   1.2));
+  };
+
+  placeLabels = function() {
+    tripLayer.graph = tripLayer.makeFusedGraph(graph);
+    tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
+    canvasTilesRenderer.refresh();
+  };
+
+  resetCurves = function() {
+    tripLayer.graph = tripLayer.makeFusedGraph(graph);
+    tripLayer.graph.createDefaultBezier();
+
+    tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
+    canvasTilesRenderer.refresh();
+  }
+
+  var setPageSize = function() {
+    var res = $('#pageSizeSelector').val().split('x');
+    console.log('Res: ' + res[0] + ' x ' + res[1]);
+    var mmToPoint = 2.83465;
+    var w = Math.floor(res[0] * mmToPoint);
+    var h = Math.floor(res[1] * mmToPoint);
+    $('#mapContainer').width(w);
+    $('#mapContainer').height(h);
+    placeLabels();
+  };
+
+  setPageSize();
+  setTimeout(function() {
+    setFrame();
+    setTimeout(function() {
+      placeLabels();
+    }, 0);
+  }, 0);
+
+
+  $('#pageSizeSelector').change(setPageSize);
 }
 
     </script>
