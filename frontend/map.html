@@ -43,6 +43,7 @@
     	    url: function(scale, x, y) { return "http://b.tile.opencyclemap.org/cycle/" + scale + "/" + x + "/" + y + ".png"; },
             //url: function(scale, x, y) { return "http://www.mapplus.ch/mapcache/gmaps/osm_schweiz_sqlite/" + scale + "/" + x + "/" + y + ".png;" },
     	    maxNumCachedTiles: 256,
+            fillScreen: true,
     	    onLocationChange: function(canvasTilesRenderer) {
       	    var element = document.getElementById("location"); 
             if (element) {

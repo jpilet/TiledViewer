@@ -65,6 +65,7 @@ function CanvasTilesRenderer(params) {
   this.params.width,
   this.params.height);
   this.pinchZoom.minScale = this.params.minScale;
+  this.pinchZoom.fillScreen = !!this.params.fillScreen;
 
   ['maxScale', 'maxX', 'maxY', 'minX', 'minY'].forEach(function(key) {
     if (key in t.params) {

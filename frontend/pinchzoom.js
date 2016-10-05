@@ -13,6 +13,12 @@ function PinchZoom(element, transformChanged, width, height) {
   this.lastTouchDown = 0;
   this.lastTouchDownPos = {x:-1, y:-1};
   this.minScale = 0;
+
+  // if true, the map will always fill the screen, ie the user wont be able
+  // to zoom out when either the full width or full height of the map is visible.
+  // If false, borders will appear, and zooming out is authorized until the 
+  // full map is visible.
+  this.fillScreen = false;
   
   var t = this;
   var e = element;
@@ -406,7 +412,9 @@ PinchZoom.prototype.enforceConstraints = function (newTransform, focusPoint) {
   var worldHeight = bottomRightWorld.y - topLeftWorld.y;
   var boundScaleX = this.element.width / worldWidth;
   var boundScaleY = this.element.height / worldHeight;
-  var scaleBound = Math.min(boundScaleX, boundScaleY);
+  var scaleBound = (this.fillScreen ?
+                    Math.max(boundScaleX, boundScaleY)
+                    : Math.min(boundScaleX, boundScaleY));
 
   if (this.maxScale) {
     scaleBound = Math.max(scaleBound, this.element.width / this.maxScale);

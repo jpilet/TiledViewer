@@ -8,7 +8,8 @@ window.addEventListener("load", function load(event){
 var MapHtmlInterface = {
   paramNames: ["url", "width", "height", "debug", "minScale", "tileSize",
                "maxNumCachedTiles", "maxSimultaneousLoads", "downgradeIfSlowerFPS",
-               "initialLocation", "onLocationChange", "geoConv", "maxScale", "maxX", "maxY", "minY", "minX", "onInitialized"],
+               "initialLocation", "onLocationChange", "geoConv", "maxScale",
+               "maxX", "maxY", "minY", "minX", "onInitialized", "fillScreen"],
   stringParamNames: {"url": true},
 
   init: function() {
