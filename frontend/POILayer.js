@@ -179,7 +179,7 @@ POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
         break;
     }
 
-    var fontSize = 20;
+    var fontSize = 16;
     context.font = (fontSize * this.renderer.pixelRatio) + 'px '
       + geojson.properties.font || 'Roboto, "Helvetica Neue", HelveticaNeue, "Helvetica-Neue", Helvetica, Arial, "Lucida Grande", sans-serif';
 
