@@ -114,17 +114,25 @@ POILayer.prototype.featureRadius = function() {
 
 POILayer.prototype.renderPoint = function(canvas, pinchZoom, geojson, context) {
   var geom = geojson.geometry;
-  var radius = this.featureRadius();
+  var radius = (geojson.properties.radius * this.renderer.pixelRatio) || this.featureRadius();
 
   var coord = geojsonGetCoordinates(geojson);
   var p = pinchZoom.viewerPosFromWorldPos(coord.x, coord.y);
 
-  if (!geojson.properties.hideIcon && geojson.properties.circled) {
-    context.strokeStyle = "rgba(255,255,255,.8)";
+  if (!geojson.properties.hideIcon && (geojson.properties.circled || geojson.properties.disc)) {
+    context.strokeStyle = geojson.properties.stroke || "rgba(255,255,255,.8)";
+    context.fillStyle = geojson.properties.fill || "rgba(255,255,255,.8)";
     context.lineWidth = 5 * this.renderer.pixelRatio;
     context.beginPath();
+
     context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
-    context.stroke();
+
+    if (geojson.properties.circled) {
+      context.stroke();
+    }
+    if (geojson.properties.disc) {
+      context.fill();
+    }
   }
 
   if (geojson.properties.text && !geojson.properties.hideText) {
