@@ -65,17 +65,18 @@ function OffscreenTileRenderer(params) {
 
   this.numLoading = 0;
   this.numFailedLoading = 0;
+  this.failedImages = [];
 }
 
 OffscreenTileRenderer.prototype = Object.create(CanvasTilesRenderer.prototype);
 OffscreenTileRenderer.prototype.constructor = OffscreenTileRenderer;
 
 OffscreenTileRenderer.prototype.addLoading = function() {
-  ++this.numLoading;
+  this.numLoading += 1;
 };
 
 OffscreenTileRenderer.prototype.doneLoading = function(err) {
-  --this.numLoading;
+  this.numLoading -= 1;
   if (err) {
     ++this.numFailedLoading;
   }
@@ -101,15 +102,18 @@ OffscreenTileRenderer.prototype.loadImage = function(url, success, error) {
   var image = new Canvas.Image();
   var me = this;
 
-  image.onerror = function() {
-      console.error('Error while loading: ' + image.src);
-      console.error(arguments);
-      this.failedImages.push(image.src);
-      me.failedLoading();
+  var reportError = function(err) {
+    var err = url + ': ' + err;
+    console.error(err);
+    me.failedImages.push(url);
+    me.failedLoading();
+    if (error) {
+      error(err);
+    }
   };
+  image.onerror = reportError;
 
   image.onload = function() {
-      //console.log('loaded image: ' + url + '(' + numLoading + ' loading)');
       success(image);
       me.doneLoading();
   };
@@ -117,13 +121,11 @@ OffscreenTileRenderer.prototype.loadImage = function(url, success, error) {
   if (url.substr(0,4) == 'http') {
     cachedRequest.get({ url: url, encoding: null }, function(err, res, body) {
         if (err) {
-          return error(url + ': ' + err);
+          return reportError(err);
         }
         if (!body) {
-          return error(url + ': empty response');
+          return reportError(url + ': empty response from server');
         }
-        console.log('Fetched image ' + url);
-
         image.src = new Buffer(body, 'binary');
     });
   } else {
@@ -143,10 +145,6 @@ OffscreenTileRenderer.prototype.render = function(cb) {
     this.renderingFailed = function() {
       cb("Failed to load:\n" + me.failedImages.join('\n'));
     };
-
-    this.numLoading = 0;
-    this.numFailedLoading = 0;
-    this.failedImages = [];
 
     // the first call to draw() will queue all image load queries
     this.addLoading();

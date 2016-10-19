@@ -40,9 +40,10 @@ Point.norm = function(a) {
 
 Point.prototype.norm = function() { return Point.norm(this); };
 
-function TripGraph() {
-  this.nodes = {};
-  this.edges = [];
+function TripGraph(graph) {
+  graph = graph || {};
+  this.nodes = graph.nodes || {};
+  this.edges = graph.edges || [];
 }
 
 TripGraph.createFromStopovers = function (stopovers) {
@@ -54,15 +55,23 @@ TripGraph.createFromStopovers = function (stopovers) {
     stop.coord = new Point(stop.coord);
   }
 
-  for (var i = 1; i < stopovers.length; ++i) {
+  var realstopovers = [];
+  for (var i in stopovers) {
+    var stop = stopovers[i];
+    if (!stop.properties || stop.properties.point != false) {
+      realstopovers.push(stop);
+    }
+  }
+
+  for (var i = 1; i < realstopovers.length; ++i) {
     result.edges.push({
-      from: stopovers[i-1].name,
-      to: stopovers[i].name,
+      from: realstopovers[i-1].name,
+      to: realstopovers[i].name,
       controlPoints: TripGraph.generateControlPoints(
-          (i >= 2 ? stopovers[i-2].coord : undefined),
-          stopovers[i-1].coord,
-          stopovers[i].coord,
-          ((i + 1) < stopovers.length ? stopovers[i+1].coord : undefined)
+          (i >= 2 ? realstopovers[i-2].coord : undefined),
+          realstopovers[i-1].coord,
+          realstopovers[i].coord,
+          ((i + 1) < realstopovers.length ? realstopovers[i+1].coord : undefined)
           )
       });
   }
@@ -75,8 +84,12 @@ TripGraph.prototype.createDefaultBezier = function (stopovers) {
     var from = this.nodes[e.from];
     var to = this.nodes[e.to];
 
-    e.controlPoints = TripGraph.generateControlPoints(undefined,
-                                                      from.coord, to.coord);
+    this.edges[i] = {
+      from: from,
+      to: to,
+      controlPoints: TripGraph.generateControlPoints(undefined,
+                                                     from.coord, to.coord)
+    };
   }
 };
 
@@ -174,3 +187,51 @@ TripGraph.prototype.location = function(aspectRatio, marginRatio) {
   };
 };
 
+function closestPointToBbox(point, bbox) {
+  var r = {x:0, y:0};
+
+  for (var i in r) {
+    if (point[i] < bbox.min[i]) {
+      r[i] = bbox.min[i];
+    } else if (point[i] > bbox.max[i]) {
+      r[i] = bbox.max[i];
+    } else {
+      r[i] = point[i];
+    }
+  }
+  return r;
+};
+
+TripGraph.placeLeaderLine = function(node) {
+  if (!node.properties) {
+    node.properties = {};
+  }
+  var placement = node.properties.leaderLine || 'bestAnchor';
+
+  var bbox = node.properties.labelBbox;
+  var anchor;
+  if (placement == 'center') {
+    var width = bbox.max.x - bbox.min.x;
+    var center = new Point((bbox.min.x + bbox.max.x) / 2,
+                           (bbox.min.y + bbox.max.y) / 2);
+    var toCoord = Point.minus(node.coord, center);
+    toCoord.mul(.6 * width / Point.norm(toCoord));
+    anchor = Point.plus(center, toCoord);
+  } else if (placement == 'closestOnBbox') {
+    anchor = closestPointToBbox(node.coord, bbox);
+  } else {
+    anchor = d3.labeler.closestLineAnchorPoint(
+          node.coord,
+          {
+            left: bbox.min.x,
+            right: bbox.max.x,
+            top: bbox.min.y,
+            bottom: bbox.max.y,
+            cx: (bbox.min.x + bbox.max.x) / 2,
+            cy: (bbox.min.y + bbox.max.y) / 2
+          }
+      );
+  }
+
+  node.properties.leaderLineAnchor = anchor;
+}

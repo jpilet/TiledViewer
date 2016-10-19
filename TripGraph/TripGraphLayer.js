@@ -4,6 +4,8 @@ function TripGraphLayer(params) {
   this.params = params;
   this.renderer = params.renderer;
   this.defaultRadius = params.defaultRadius || 6;
+  this.icons = {};
+
   if (!this.renderer) {
     throw(new Error("TripGraphLayer: no renderer !"));
   }
@@ -15,12 +17,13 @@ TripGraphLayer.prototype.draw = function(canvas, pinchZoom,
   var graph = this.graph;
   var me = this;
   var context = canvas.getContext('2d');
+  var pixelRatio = this.renderer.pixelRatio;
 
   graph.edges.forEach(function(edge) {
     var bezier = graph.bezier(edge);
     if (bezier) {
       me.setEdgeStrokeStyle(context, edge);
-      TripGraphLayer.drawBezier(context, pinchZoom, bezier);
+      TripGraphLayer.drawBezier(context, pinchZoom, bezier, pixelRatio);
     }
   });
 
@@ -41,8 +44,7 @@ TripGraphLayer.prototype.draw = function(canvas, pinchZoom,
   }
 };
 
-TripGraphLayer.drawBezier = function(context, pinchZoom, curve) {
-  context.beginPath();
+TripGraphLayer.drawBezier = function(context, pinchZoom, curve, pixelRatio) {
 
   var ptArray = new Array(8);
   var points = curve.points;
@@ -54,23 +56,29 @@ TripGraphLayer.drawBezier = function(context, pinchZoom, curve) {
 
   var bezier = new Bezier(ptArray);
   var l = bezier.length();
-  var numArrows = Math.min(2, Math.floor(l / 60));
-  var size = 10;
+  var numArrows = Math.min(2, Math.floor(l / (pixelRatio * 30)));
+  var size = 10 * pixelRatio;
+
   for (var i = 1; i < numArrows; ++i) {
     var t = i / numArrows;
     var p = bezier.get(t);
     var n = bezier.normal(t);
     var tangent = new Point(bezier.derivative(t));
     tangent.mul(size / tangent.norm());
+    p = Point.plus(p, Point.times(.5, tangent));
     var base = Point.minus(p, tangent);
 
+    context.beginPath();
     context.moveTo(base.x + (size/2) * n.x, base.y + (size/2) * n.y);
     context.lineTo(p.x, p.y);
     context.lineTo(base.x - (size/2) * n.x, base.y - (size/2) * n.y);
+    context.closePath();
+    context.fill();
   }
 
   var viewcurve = bezier.points;
 
+  context.beginPath();
   context.moveTo(viewcurve[0].x, viewcurve[0].y);
   context.bezierCurveTo(
       viewcurve[1].x, viewcurve[1].y,
@@ -81,7 +89,9 @@ TripGraphLayer.drawBezier = function(context, pinchZoom, curve) {
 };
 
 TripGraphLayer.prototype.setEdgeStrokeStyle = function(context, edge) {
-  context.strokeStyle = edge.lineColor || '#003300';
+  var style = edge.lineColor || '#003300';
+  context.strokeStyle = style;
+  context.fillStyle = style;
   context.lineWidth = this.renderer.pixelRatio * (edge.lineWidth || 2);
 };
 
@@ -94,36 +104,63 @@ TripGraphLayer.prototype.nodeRadius = function(node) {
 };
 
 TripGraphLayer.prototype.drawNodePoint = function(context, pinchZoom, node) {
+  if (node.properties && node.properties.point == false) {
+    return;
+  }
   var pos = node.viewerPos;
   this.drawPoint(context, pos, this.renderer.pixelRatio, node.properties || {});
 };
 
 TripGraphLayer.prototype.drawNodeLabel = function(context, pinchZoom, node) {
-  if (node.label) {
-
+  if (node.label || node.labelIcon) {
     if (node.properties && node.properties.labelCoord) {
       var labelPoint = pinchZoom.viewerPosFromWorldPos(node.properties.labelCoord);
     }
-    var pos = pinchZoom.viewerPosFromWorldPos(node.coord);
-    drawText(context, node.label, labelPoint || pos,
-             this.renderer.pixelRatio, node.properties || {});
+    var pos = labelPoint || pinchZoom.viewerPosFromWorldPos(node.coord);
+    if (node.label) {
+      drawText(context, node.label, pos,
+               this.renderer.pixelRatio, node.properties || {});
+    }
+    if (node.labelIcon && node.labelIcon.url in this.icons) {
+      if (node.labelIcon.autorotate != undefined) {
+        node.labelIcon.angle = node.labelIcon.autorotate + Math.atan2(
+            node.coord.y - node.properties.labelCoord.y,
+            node.coord.x - node.properties.labelCoord.x);
+      }
+      drawIcon(context, this.icons[node.labelIcon.url], node.labelIcon,
+               pos, this.renderer.pixelRatio);
+    }
   }
 };
 
 TripGraphLayer.prototype.drawLeaderLine = function(context, pinchZoom, node) {
-  if (node.label && node.properties && node.properties.leaderLineAnchor) {
+  if (node.properties && node.properties.leaderLineAnchor) {
     var pixelRatio = this.renderer.pixelRatio;
     var p = pinchZoom.viewerPosFromWorldPos(node.properties.leaderLineAnchor);
-    context.lineWidth = pixelRatio;
+    context.lineWidth = (node.properties.leaderLineWidth || 1) * pixelRatio;
     context.beginPath();
 
     var pos = pinchZoom.viewerPosFromWorldPos(node.coord);
     var radius = this.nodeRadius(node);
-    if (Point.dist(p, pos) > (2*radius)) {
+    var closest = pinchZoom.viewerPosFromWorldPos(
+        closestPointToBbox(node.coord, node.properties.labelBbox));
+
+    if (Point.dist(closest, pos) > (3*radius)) {
+      if (node.properties.dashed) {
+        var scaled = [];
+        for (var i in node.properties.dashed) {
+          scaled.push(this.renderer.pixelRatio * node.properties.dashed[i]);
+        }
+        context.setLineDash(scaled);
+      }
+
       context.moveTo(p.x, p.y);
       context.lineTo(pos.x, pos.y);
-      context.strokeStyle = '#000000';
+      context.strokeStyle = node.properties.leaderLineColor || '#000000';
       context.stroke();
+      if (node.properties.dashed) {
+        context.setLineDash([]);
+      }
     }
   }
 };
@@ -151,8 +188,7 @@ function setTextStyle(context, pixelRatio, properties) {
   properties = properties || {};
   var fontSize = properties.fontSize || 20;
   fontSize *= pixelRatio;
-  context.font = fontSize + 'px '
-    + properties.font || 'Roboto, "Helvetica Neue", HelveticaNeue, "Helvetica-Neue", Helvetica, Arial, "Lucida Grande", sans-serif';
+  context.font = fontSize + 'px ' + (properties.font || 'Helvetica');
   context.strokeStyle = properties.stroke || 'rgba(255,255,255,.8)';
   context.lineWidth = (properties.haloWidth || 4) * pixelRatio;
   context.fillStyle = properties.fill || 'rgba(0,0,0,1)';
@@ -220,6 +256,27 @@ function drawText(context, text, pos, pixelRatio, properties) {
   context.fillText(text, x, y);
 }
 
+function drawIcon(context, iconData, icon, pos, pixelRatio) {
+  if (!iconData) {
+    return;
+  }
+  var width = (icon.width ? icon.width * pixelRatio : 16 * pixelRatio);
+  var height = (icon.height ? icon.height * pixelRatio : width);
+  var ratioX = icon.ratioX || .5;
+  var ratioY = icon.ratioY || .5;
+  var dx = width * ratioX;
+  var dy = height * ratioY;
+  if (icon.angle) {
+    context.save();
+    context.translate(pos.x, pos.y);
+    context.rotate(icon.angle);
+    context.drawImage(iconData, -dx, -dy, width, height);
+    context.restore();
+  } else {
+    context.drawImage(iconData, pos.x - dx, pos.y - dy, width, height);
+  }
+}
+
 function bboxOverlaps(a, b) {
   if (a.max.x < b.min.x) return false; // a is left of b
   if (a.min.x > b.max.x) return false; // a is right of b
@@ -233,6 +290,16 @@ function bboxContains(box, p) {
           && (p.y >= box.min.y) && (p.y <= box.max.y));
 }
 
+TripGraphLayer.prototype.getLabelIconSize = function(context, node) {
+  var pixelRatio = this.renderer.pixelRatio;
+  var labelIcon = node.labelIcon;
+
+  return {
+    width: (labelIcon.width || 16) * pixelRatio,
+    height: (labelIcon.height || labelIcon.width || 16) * pixelRatio,
+  };
+};
+
 // Modify TripGraph to place labels at appropriate places
 TripGraphLayer.prototype.placeLabels = function(context) {
   var pinchZoom = this.renderer.pinchZoom;
@@ -241,7 +308,7 @@ TripGraphLayer.prototype.placeLabels = function(context) {
   var anchorArray = [];
   for (var i in this.graph.nodes) {
     var node = this.graph.nodes[i];
-    if (!node.label) {
+    if (!node.label && !node.labelIcon) {
       continue;
     }
     var pos = pinchZoom.viewerPosFromWorldPos(node.coord);
@@ -254,12 +321,20 @@ TripGraphLayer.prototype.placeLabels = function(context) {
       y: pos.y,
       r: radius * pixelRatio
     });
-    var size = measureText(context, node.label, pixelRatio, node.properties);
     var margin = 2 * pixelRatio;
+
+    var size, name;
+    if (node.label) {
+      size = measureText(context, node.label, pixelRatio, node.properties);
+      name = node.label;
+    } else if (node.labelIcon) {
+      size = this.getLabelIconSize(context, node);
+      name = 'icon:' + node.labelIcon.url;
+    }
     labelArray.push({
       x: pos.x,
       y: pos.y,
-      name: node.label,
+      name: name,
       width: size.width + 2 * margin,
       height: size.height + 2 * margin,
       node: node
@@ -324,11 +399,36 @@ TripGraphLayer.prototype.placeLabels = function(context) {
       entry.node.properties = {};
     }
     var properties = entry.node.properties;
+    var halfSize = Point.times(1/2, new Point(entry.width, entry.height));
     properties.labelCoord = pinchZoom.worldPosFromViewerPos(entry);
-    properties.leaderLineAnchor = pinchZoom.worldPosFromViewerPos(labeler.closestLineAnchorPoint(anchorArray[i], labeler.boxOfLabel(i)));
+    properties.labelBbox = {
+      min: pinchZoom.worldPosFromViewerPos(Point.minus(entry, halfSize)),
+      max: pinchZoom.worldPosFromViewerPos(Point.plus(entry, halfSize))
+    },
+
+    TripGraph.placeLeaderLine(entry.node);
     properties.textPlacement = 'C';
     properties.textOffset = 0;
   }
+}
+
+function shallowCopy( original )  
+{
+    // First create an empty object with
+    // same prototype of our original source
+    var clone = Object.create( Object.getPrototypeOf( original ) ) ;
+
+    var i , keys = Object.getOwnPropertyNames( original ) ;
+
+    for ( i = 0 ; i < keys.length ; i ++ )
+    {
+        // copy each property into the clone
+        Object.defineProperty( clone , keys[ i ] ,
+            Object.getOwnPropertyDescriptor( original , keys[ i ] )
+        ) ;
+    }
+
+    return clone ;
 }
 
 TripGraphLayer.prototype.makeFusedGraph = function(graph) {
@@ -336,7 +436,7 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
 
   var renameDict = {};
   var fuseNodePair = function(a, b) {
-    var r = Object.create(a);
+    var r = shallowCopy(a);
     r.name = a.name + '' + b.name;
     r.label = a.label + ', ' + b.label;
     renameDict[a.name] = renameDict[b.name] = r.name;
@@ -360,9 +460,14 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
   var keptNodes = [];
   for (var j in graph.nodes) {
     var node = graph.nodes[j];
-    var r = this.nodeRadius(node);
 
+    if (!node.label) {
+      continue;
+    }
+
+    var r = this.nodeRadius(node);
     var keep = true;
+
     for (var i in keptNodes) {
       var n = keptNodes[i];
 
@@ -378,6 +483,15 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
     }
   }
 
+  for (var j in graph.nodes) {
+    var node = graph.nodes[j];
+
+    if (!node.label) {
+      keptNodes.push(node);
+    }
+  }
+
+
   var result = new TripGraph();
 
   for (var i in keptNodes) {
@@ -392,7 +506,7 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
     var nb = lookup(edge.to);
 
     if (na != nb) {
-      var newEdge = Object.create(edge);
+      var newEdge = shallowCopy(edge);
       newEdge.from = na;
       newEdge.to = nb;
       result.edges.push(newEdge);
@@ -401,3 +515,68 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
 
   return result;
 };
+
+TripGraphLayer.prototype.forEachNode = function(cb) {
+  for (var i in this.graph.nodes) {
+    cb(this.graph.nodes[i]);
+  }
+};
+
+TripGraphLayer.prototype.loadIcons = function(cb) {
+  var me = this;
+  this.iconsToLoad = 1;
+  this.failedIcons = 0;
+  var iconLoaded = function() {
+    me.iconsToLoad--;
+    if (cb && me.iconsToLoad == 0) {
+      if (me.failedIcons > 0) {
+        cb(new Error(me.failedIcons + ' icons failed to load.'));
+      } else {
+        cb();
+      }
+    }
+  };
+
+  this.forEachNode(function(node) {
+    if (node.labelIcon) {
+      var url = node.labelIcon.url;
+      me.iconsToLoad++;
+      me.renderer.loadImage(node.labelIcon.url,
+        function(data) {
+          me.icons[url] = data;
+          iconLoaded();
+        },
+        function(err) {
+          console.log('Failed to load: ' + url);
+          me.failedIcons++;
+          iconLoaded();
+        }
+      );
+    }
+  });
+
+  iconLoaded();
+};
+
+TripGraphLayer.prototype.saveToObj = function() {
+  return {
+    graph: this.graph,
+    location: this.renderer.location,
+    defaultRadius: this.defaultRadius,
+    width: this.renderer.canvas.width / this.renderer.pixelRatio,
+    height: this.renderer.canvas.height / this.renderer.pixelRatio
+  };
+};
+
+TripGraphLayer.prototype.saveToString = function() {
+  return JSON.stringify(this.saveToObj());
+};
+
+TripGraphLayer.prototype.load = function(data) {
+  if (typeof data == 'string') {
+    data = JSON.parse(data);
+  }
+  this.graph = data.graph;
+  this.defaultRadius = data.defaultRadius;
+};
+

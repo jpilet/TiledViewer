@@ -3,23 +3,45 @@
 function TripGraphEditor(renderer, graph) {
   this.graph = graph;
   this.renderer = renderer;
-  this.startInfo = undefined;
+  this.applyDelta = undefined;
 }
 
 TripGraphEditor.prototype.acceptTouchEvent = function(viewer, world, type) {
   if (type == 'wheel') {
     return false;
   }
-  var p = this.closestBezier(world);
 
-  var threshold = this.renderer.pinchZoom.worldDistanceFromViewerDistance(
-      10 * this.renderer.pixelRatio);
-
-  if (p && p.d < threshold) {
-    this.startInfo = p;
-    this.startWorldPos = world;
+  this.startWorldPos = world;
+  var clickedLabel = this.findLabelAtWorldPos(world);
+  if (clickedLabel) {
+    var properties = clickedLabel.properties;
+    this.applyDelta = function(delta) {
+      properties.labelCoord.x += delta.x;
+      properties.labelCoord.y += delta.y;
+      properties.labelBbox.min.x += delta.x;
+      properties.labelBbox.min.y += delta.y;
+      properties.labelBbox.max.x += delta.x;
+      properties.labelBbox.max.y += delta.y;
+      TripGraph.placeLeaderLine(clickedLabel);
+    };
     return true;
+  } else {
+    var p = this.closestBezier(world);
+
+    var threshold = this.renderer.pinchZoom.worldDistanceFromViewerDistance(
+        10 * this.renderer.pixelRatio);
+
+    if (p && p.d < threshold) {
+      var pointToMove =  p.edge.controlPoints[p.t < .5 ? 0 : 1];
+      this.applyDelta = function(delta) {
+        pointToMove.x += delta.x;
+        pointToMove.y += delta.y;
+      };
+      return true;
+    }
   }
+
+  this.applyDelta = undefined;
   return false;
 };
 
@@ -34,13 +56,12 @@ TripGraphEditor.prototype.handleMouseMove = function(event) {
 }
 
 TripGraphEditor.prototype.handleMotion = function(viewerPos) {
-  if (!this.startInfo) {
+  if (!this.applyDelta) {
     return;
   }
 
   var worldPos = this.renderer.pinchZoom.worldPosFromViewerPos(
       viewerPos.x, viewerPos.y);
-  var t = this.startInfo.t;
 
   var delta = {
     x: worldPos.x - this.startWorldPos.x,
@@ -48,17 +69,13 @@ TripGraphEditor.prototype.handleMotion = function(viewerPos) {
   };
   this.startWorldPos = worldPos;
 
-  var controls = this.startInfo.edge.controlPoints;
-  var i = (t < .5 ? 0 : 1);
-  controls[i].x += delta.x;
-  controls[i].y += delta.y;
-
+  this.applyDelta(delta);
   this.renderer.refreshIfNotMoving();
 };
 
 TripGraphEditor.prototype.handleMouseUp = function(event) {
   event.preventDefault();
-  this.startInfo = undefined;
+  this.applyDelta = undefined;
 };
 
 TripGraphEditor.prototype.handleMouseWheel = function(event) {
@@ -71,13 +88,13 @@ TripGraphEditor.prototype.handleStart = function(event) {
 
 TripGraphEditor.prototype.handleEnd = function(event) {
   event.preventDefault();
-  this.startInfo = undefined;
+  this.applyDelta = undefined;
 };
 
 TripGraphEditor.prototype.handleMove = function(event) {
   event.preventDefault();
   if (event.touches.length != 1) {
-    this.startInfo = undefined;
+    this.applyDelta = undefined;
     return;
   }
 
@@ -102,3 +119,14 @@ TripGraphEditor.prototype.closestBezier = function(p) {
   }
   return nearest;
 };
+TripGraphEditor.prototype.findLabelAtWorldPos = function(pos) {
+  for (var i in this.graph.nodes) {
+    var node = this.graph.nodes[i];
+    if (node.properties && node.properties.labelBbox
+        && bboxContains(node.properties.labelBbox, pos)) {
+      return node;
+    }
+  }
+  return undefined;
+};
+

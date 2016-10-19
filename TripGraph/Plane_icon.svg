@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="248.24501"
+   height="250.02776"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="Plane_icon.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="/Users/leto/Sites/aptana/TiledViewer/TripGraph/plane.png"
+   inkscape:export-xdpi="23.200001"
+   inkscape:export-ydpi="23.200001">
+  <metadata
+     id="metadata9">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     inkscape:window-height="855"
+     inkscape:window-width="1280"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     guidetolerance="10.0"
+     gridtolerance="10.0"
+     objecttolerance="10.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base"
+     showgrid="false"
+     inkscape:zoom="1"
+     inkscape:cx="57.909172"
+     inkscape:cy="127.81268"
+     inkscape:window-x="41"
+     inkscape:window-y="25"
+     inkscape:current-layer="svg2"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-maximized="0" />
+  <defs
+     id="defs11">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 335.76001 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="753.12 : 335.76001 : 1"
+       inkscape:persp3d-origin="376.56 : 223.84001 : 1"
+       id="perspective11" />
+  </defs>
+  <path
+     d="M 247.97674,154.59719 140.99783,72.044752 c 1.02804,-12.435268 2.05349,-40.225677 1.67698,-45.394674 -3.15623,-43.330722 -30.77905,-25.1916042 -31.38185,-5.889602 -0.16487,5.279242 -1.60515,32.574663 -2.02509,50.808283 L 0.7517806,152.09295 0,177.9037 l 111.3966,-48.47316 2.53873,80.35078 -32.452676,22.35417 -0.509783,16.89047 42.474809,-10.82829 0.006,0.13963 42.5084,11.69045 -0.20351,-16.88858 -32.04282,-22.98304 4.06593,-80.29159 110.46333,50.51469 -0.26811,-25.78204 z"
+     style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     id="path5724"
+     inkscape:connector-curvature="0" />
+</svg>

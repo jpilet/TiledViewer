@@ -4,8 +4,6 @@
   <title>Trip map editor</title>
   <meta name="viewport" content="width=device-width, user-scalable=no">
   <style>
-    body {margin: 0; overflow: hidden; }
-    html,body { width: 100%; height: 100%; }
 
     #mapContainer {
       width: 100%;
@@ -36,8 +34,10 @@
   <script src="TripGraph.js"></script>
   <script src="TripGraphLayer.js"></script>
   <script src="TripGraphEditor.js"></script>
+  <script src="WorldBackgroundLayer.js"></script>
+  <script src="world.js"></script>
   <script src="../node_modules/bezier-js/bezier.js"></script>
-  <script src="D3-Labeler/labeler.js"></script>
+  <script src="labeler.js"></script>
 </head>
 
 <body>
@@ -46,7 +46,6 @@
     <div id="mapContainer"
     data-map-url="https://tiles.wmflabs.org/bw-mapnik/$scale/$x/$y.png"
     data-map-initialLocation="{x:0.5137435332434739,y:0.32862555455727877,scale:0.0002892879213498567}"
-    data-map-onLocationChange="onLocationChange"
     data-map-onInitialized="onRendererInitialized"
     >
       <!-- Le contenu sera défini plus tard, le placement aussi.
@@ -61,27 +60,31 @@
       <button type="button" onclick="setFrame();">Frame</button>
       <button type="button" onclick="placeLabels();">Place labels</button>
       <button type="button" onclick="resetCurves();">Reset curves</button>
-      <span id="location"></span>
+      <button type="button" onclick="save();">save</button>
+      <button type="button" onclick="downloadFile('pdf');">PDF</button>
+      <button type="button" onclick="downloadFile('svg');">SVG</button>
       <select id="pageSizeSelector" name="pageSize">
         <option value="210x148" selected>A5 landscape</option>
         <option value="148x210">A5 portrait</option>
         <option value="105x74" selected>A6 landscape</option>
+        <option value="74x105" selected>A6 portrait</option>
       </select>
     </footer>
+    <p id="savedData"></p>
     <script>
 
-
-function onLocationChange (canvasTilesRenderer) {
-  var location = canvasTilesRenderer.getLocation();
-  document.getElementById("location").innerHTML = 
-    "{x:" + location.x + ",y:" + location.y + ",scale:" + location.scale+"}";
-}
 
 var setFrame;
 var placeLabels;
 var resetCurves;
+var save;
+var downloadFile;
 
 function onRendererInitialized(canvasTilesRenderer) {
+
+  //canvasTilesRenderer.layers.push(canvasTilesRenderer.layers[0]);
+  canvasTilesRenderer.layers[0] =
+    new WorldBackgroundLayer({ renderer: canvasTilesRenderer});
 
   function latLonToCoord(lat, lon) {
     var p = Utils.latLonToWorld([lon, lat]);
@@ -108,7 +111,18 @@ function onRendererInitialized(canvasTilesRenderer) {
     { name: 6, label: 'Halong', coord: latLonToCoord(20.792083, 106.939477) },
     { name: 7, label: 'Tam Coc', coord: latLonToCoord(20.243855, 105.925645) },
     { name: 8, label: 'Hoi-An', coord: latLonToCoord(15.871443, 108.382874) },
-    { name: 9, label: 'Saigon', coord: latLonToCoord(10.85653, 106.726685) }
+    { name: 9, label: 'Saigon', coord: latLonToCoord(10.85653, 106.726685) },
+    {
+      name: 10,
+      labelIcon: { url: 'plane.png', width: 20, autorotate: - Math.PI/2 },
+      coord: latLonToCoord(10.85653, 106.726685),
+      properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
+    },{
+      name: 11,
+      labelIcon: { url: 'plane.png', width: 20, autorotate: Math.PI/2 },
+      coord: latLonToCoord(21.027764, 105.83416),
+      properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
+    }
   ]);
   
   /*
@@ -128,6 +142,8 @@ function onRendererInitialized(canvasTilesRenderer) {
   });
 
   canvasTilesRenderer.addLayer(tripLayer);
+
+  tripLayer.loadIcons(function(err) { canvasTilesRenderer.refresh(); });
 
   var editor = new TripGraphEditor(canvasTilesRenderer, graph);
   canvasTilesRenderer.pinchZoom.touchEventHandlers.push(editor);
@@ -151,6 +167,16 @@ function onRendererInitialized(canvasTilesRenderer) {
     tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
     canvasTilesRenderer.refresh();
   }
+
+  save = function() {
+    $('#savedData').text(tripLayer.saveToString());
+  };
+
+  downloadFile = function(type) {
+    var trip = tripLayer.saveToString();
+    window.open(
+        window.location.origin + '/api/' + type + '/'  + encodeURI(trip));
+  };
 
   var setPageSize = function() {
     var res = $('#pageSizeSelector').val().split('x');
@@ -176,5 +202,9 @@ function onRendererInitialized(canvasTilesRenderer) {
 }
 
     </script>
+
+  <svg viewBox="0 0 800 600" width="800" height="600">
+      <use xlink:href="worldHigh.svg"></use>
+  </svg>
 </body>
 </html>
