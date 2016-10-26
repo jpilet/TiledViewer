@@ -564,7 +564,8 @@ TripGraphLayer.prototype.saveToObj = function() {
     location: this.renderer.location,
     defaultRadius: this.defaultRadius,
     width: this.renderer.canvas.width / this.renderer.pixelRatio,
-    height: this.renderer.canvas.height / this.renderer.pixelRatio
+    height: this.renderer.canvas.height / this.renderer.pixelRatio,
+    world: this.renderer.layers[0].save()
   };
 };
 
@@ -578,5 +579,9 @@ TripGraphLayer.prototype.load = function(data) {
   }
   this.graph = data.graph;
   this.defaultRadius = data.defaultRadius;
+
+  for (var key in data.world) {
+    this.renderer.layers[0].params[key] = data.world[key];
+  }
 };
 

@@ -57,19 +57,29 @@
     </div>
 
     <footer>
-      <button type="button" onclick="setFrame();">Frame</button>
-      <button type="button" onclick="placeLabels();">Place labels</button>
-      <button type="button" onclick="resetCurves();">Reset curves</button>
-      <button type="button" onclick="setPageSize();">Auto</button>
-      <button type="button" onclick="save();">save</button>
-      <button type="button" onclick="downloadFile('pdf');">PDF</button>
-      <button type="button" onclick="downloadFile('svg');">SVG</button>
-      <select id="pageSizeSelector" name="pageSize">
-        <option value="210x148" selected>A5 landscape</option>
-        <option value="148x210">A5 portrait</option>
-        <option value="105x74" selected>A6 landscape</option>
-        <option value="74x105" selected>A6 portrait</option>
-      </select>
+      <div>
+        <button type="button" onclick="setFrame();">Frame</button>
+        <button type="button" onclick="placeLabels();">Place labels</button>
+        <button type="button" onclick="resetCurves();">Reset curves</button>
+        <button type="button" onclick="setPageSize();">Auto</button>
+        <button type="button" onclick="save();">save</button>
+        <button type="button" onclick="downloadFile('pdf');">PDF</button>
+        <button type="button" onclick="downloadFile('svg');">SVG</button>
+        <select id="pageSizeSelector" name="pageSize">
+          <option value="210x148" selected>A5 landscape</option>
+          <option value="148x210">A5 portrait</option>
+          <option value="105x74">A6 landscape</option>
+          <option value="74x105">A6 portrait</option>
+        </select>
+      </div>
+      <div>Sea color: <input type='color' id='seaColor' value='#a0d2ff'/> </div>
+      <div>Land color: <input type='color' id='landColor' value='#cccccc'/></div>
+      <div>Border color: <input type='color' id='borderColor' value='#ffffff'/></div>
+      <div>
+        <select id="countrySelector" name="country">
+        <input type='color' id='countryColor' />
+        </select>
+      </div>
     </footer>
     <p id="savedData"></p>
     <script>
@@ -82,11 +92,12 @@ var save;
 var downloadFile;
 var setPageSize;
 
+var tripName = "vietnam tour";
+
 function onRendererInitialized(canvasTilesRenderer) {
 
-  //canvasTilesRenderer.layers.push(canvasTilesRenderer.layers[0]);
-  canvasTilesRenderer.layers[0] =
-    new WorldBackgroundLayer({ renderer: canvasTilesRenderer});
+  var worldLayer = new WorldBackgroundLayer({ renderer: canvasTilesRenderer});
+  canvasTilesRenderer.layers[0] = worldLayer;
 
   function latLonToCoord(lat, lon) {
     var p = Utils.latLonToWorld([lon, lat]);
@@ -177,8 +188,16 @@ function onRendererInitialized(canvasTilesRenderer) {
 
   downloadFile = function(type) {
     var trip = tripLayer.saveToString();
-    window.open(
-        window.location.origin + '/api/' + type + '/'  + encodeURI(trip));
+    $.ajax({
+      url: '/api/' + encodeURI(tripName),
+      type: 'POST',
+      data: {s: trip},
+      success: function(respoonse) {
+        window.open(
+            window.location.origin + '/api/' + type + '/'  + encodeURI(tripName));
+      },
+      dataType: 'json'
+    });
   };
 
   setPageSize = function() {
@@ -199,7 +218,40 @@ function onRendererInitialized(canvasTilesRenderer) {
 
 
   $('#pageSizeSelector').change(setPageSize);
+
+  ['seaColor', 'borderColor', 'landColor'].map(function(key) {
+    $('#' + key).change(function() {
+      worldLayer.params[key] = this.value;
+      canvasTilesRenderer.refresh();
+    });
+  });
+
+  $('#countryColor').change(function() {
+    var color = this.value;
+    var country = $('#countrySelector').val();
+    worldLayer.params.countryColors[country] = color;
+    canvasTilesRenderer.refresh();
+  });
+
+  $('#countrySelector').change(function() {
+    var country = $('#countrySelector').val();
+    var color = (worldLayer.params.countryColors[country]
+      || worldLayer.params.landColor);
+    $('#countryColor').val(color);
+  });
 }
+
+function fillCountrySelector() {
+  var selector = $('#countrySelector');
+
+  var countries =WorldBackgroundLayer.countries; 
+  for (var i in countries) {
+    var country = countries[i];
+    selector.append($('<option>', {value: country.id}).text(country.title));
+  }
+}
+fillCountrySelector();
+
 
     </script>
 

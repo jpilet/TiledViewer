@@ -27,7 +27,15 @@ for (var i in sources) {
 
 function renderBuffer(trip, format, cb) {
   if (typeof trip == 'string') {
-    trip = JSON.parse(trip);
+    try {
+      trip = JSON.parse(trip);
+    } catch(err) {
+      console.warn(err);
+      console.log(trip);
+      console.log(err.stack);
+      cb(err);
+      return;
+    }
   }
 
   var canvas = new Canvas(trip.width, trip.height, format);
@@ -42,8 +50,9 @@ function renderBuffer(trip, format, cb) {
     localImagePath: __dirname
   });
 
+  trip.world.renderer = renderer;
   renderer.layers[0] =
-      new WorldBackgroundLayer({ renderer: renderer});
+      new WorldBackgroundLayer(trip.world);
 
   var tripLayer = new TripGraphLayer({
     renderer: renderer,

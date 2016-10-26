@@ -6,6 +6,11 @@ function WorldBackgroundLayer(params) {
   this.renderer = params.renderer;
   this.image = undefined;
 
+  params.landColor = params.landColor || '#cccccc';
+  params.seaColor = params.seaColor || '#a0d2ff';
+  params.borderColor = params.borderColor || '#ffffff';
+  params.countryColors = params.countryColors || {};
+
   if (!this.renderer) {
     throw(new Error("WorldBackgroundLayer: no renderer !"));
   }
@@ -18,11 +23,21 @@ function WorldBackgroundLayer(params) {
   this.bottomLatitude = params.bottomLatitude || -58.488473;
 }
 
+WorldBackgroundLayer.prototype.save = function() {
+  var r = {};
+  var me = this;
+  ['landColor', 'seaColor', 'borderColor', 'countryColors'].map(
+      function(key) {
+      r[key] = me.params[key];
+      });
+  return r;
+};
+
 WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
                                       bboxTopLeft, bboxBottomRight) {
   var context = canvas.getContext('2d');
   context.rect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = '#a0d2ff';
+  context.fillStyle = this.params.seaColor;
   context.fill();
 
   var topLeftWorld = Utils.latLonToWorld(
@@ -66,14 +81,17 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
 
 
   context.lineWidth = 1 * this.renderer.pixelRatio;
-  context.strokeStyle = '#fff';
-  context.fillStyle = '#cccccc';
+  context.strokeStyle = this.params.borderColor;
+  context.fillStyle = this.params.landColor;
 
   var moveAbsolute = false;
 
   var countries =WorldBackgroundLayer.countries; 
   for (var i in countries) {
     var country = countries[i];
+
+    context.fillStyle = (this.params.countryColors[country.id]
+                         || this.params.landColor);
     //if (country.id != 'CA') { continue; }
     if (!country.commands) {
       country.commands = country.d.split(' ');
