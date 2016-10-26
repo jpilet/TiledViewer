@@ -28,6 +28,14 @@ function WorldBackgroundLayer(params) {
   this.bottomLatitude = params.bottomLatitude || -58.488473;
 }
 
+WorldBackgroundLayer.prototype.countries = function() {
+  if (this.renderer.location.scale > .2) {
+    return WorldBackgroundLayer.lowResCountries;
+  } else {
+    return WorldBackgroundLayer.highResCountries;
+  }
+};
+
 WorldBackgroundLayer.prototype.save = function() {
   var r = {};
   var me = this;
@@ -47,7 +55,7 @@ WorldBackgroundLayer.bboxContains = function(bbox, p) {
 };
 
 WorldBackgroundLayer.prototype.countryAtPos = function(pos) {
-  var countries =WorldBackgroundLayer.countries; 
+  var countries = this.countries(); 
   var context = this.renderer.canvas.getContext('2d');
   var clickedCountry;
   var me = this;
@@ -102,7 +110,9 @@ WorldBackgroundLayer.prototype.canvasCommands
   for (var j = 0; j < coords.length; ++j) {
     var c = coords[j];
 
-    if (c == 'M') {
+    if (c == '') {
+      continue;
+    } else if (c == 'M') {
       moveAbsolute = false;
       ++j;
       p = coords[j].slice();
@@ -198,7 +208,7 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
 
   var moveAbsolute = false;
 
-  var countries =WorldBackgroundLayer.countries; 
+  var countries = this.countries(); 
   for (var i in countries) {
     var country = countries[i];
 
@@ -206,7 +216,7 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
                          || this.params.landColor);
     //if (country.id != 'CA') { continue; }
     if (!country.commands) {
-      country.commands = country.d.split(' ');
+      country.commands = country.d.replace(/([mMlLz])/g, ' $1 ').split(/[\s]+/);
       for (var i in country.commands) {
         if (country.commands[i].length > 1) {
           country.commands[i] = parseCoord(country.commands[i]);
