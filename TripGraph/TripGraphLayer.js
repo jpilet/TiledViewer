@@ -177,11 +177,16 @@ TripGraphLayer.prototype.drawPoint = function(context, p, pixelRatio, properties
 };
 
 function measureText(context, text, pixelRatio, properties) {
+  var lines = text.split('\n');
   var size = setTextStyle(context, pixelRatio, properties);
-  return {
-    width: context.measureText(text).width,
-    height: size
-  }; 
+
+  var r = { width: 0, height: size * lines.length };
+
+  for (var i in lines) {
+    r.width = Math.max(r.width, context.measureText(lines[i]).width);
+  }
+    
+  return r; 
 }
 
 function setTextStyle(context, pixelRatio, properties) {
@@ -250,10 +255,15 @@ function drawText(context, text, pos, pixelRatio, properties) {
   var x = pos.x + dx;
   var y = pos.y + dy;
 
-  setTextStyle(context, pixelRatio, properties);
+  var h = setTextStyle(context, pixelRatio, properties);
 
-  context.strokeText(text, x, y);
-  context.fillText(text, x, y);
+  var lines = text.split('\n');
+
+  var vshift = (lines.length - 1) / 2;
+  for (var i in lines) {
+    context.strokeText(lines[i], x, y + (i - vshift) * h);
+    context.fillText(lines[i], x, y + (i - vshift) * h);
+  }
 }
 
 function drawIcon(context, iconData, icon, pos, pixelRatio) {
@@ -404,7 +414,7 @@ TripGraphLayer.prototype.placeLabels = function(context) {
     properties.labelBbox = {
       min: pinchZoom.worldPosFromViewerPos(Point.minus(entry, halfSize)),
       max: pinchZoom.worldPosFromViewerPos(Point.plus(entry, halfSize))
-    },
+    };
 
     TripGraph.placeLeaderLine(entry.node);
     properties.textPlacement = 'C';
@@ -438,7 +448,7 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
   var fuseNodePair = function(a, b) {
     var r = shallowCopy(a);
     r.name = a.name + '' + b.name;
-    r.label = a.label + ', ' + b.label;
+    r.label = a.label + '\n' + b.label;
     renameDict[a.name] = renameDict[b.name] = r.name;
     return r;
   };

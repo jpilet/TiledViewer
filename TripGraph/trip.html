@@ -178,6 +178,7 @@ function onRendererInitialized(canvasTilesRenderer) {
 
   placeLabels = function() {
     tripLayer.graph = tripLayer.makeFusedGraph(graph);
+    editor.graph = tripLayer.graph;
     tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
     canvasTilesRenderer.refresh();
   };
@@ -185,6 +186,7 @@ function onRendererInitialized(canvasTilesRenderer) {
   resetCurves = function() {
     graph.createDefaultBezier();
     tripLayer.graph = tripLayer.makeFusedGraph(graph);
+    editor.graph = tripLayer.graph;
 
     tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
     canvasTilesRenderer.refresh();
