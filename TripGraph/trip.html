@@ -60,6 +60,7 @@
       <button type="button" onclick="setFrame();">Frame</button>
       <button type="button" onclick="placeLabels();">Place labels</button>
       <button type="button" onclick="resetCurves();">Reset curves</button>
+      <button type="button" onclick="setPageSize();">Auto</button>
       <button type="button" onclick="save();">save</button>
       <button type="button" onclick="downloadFile('pdf');">PDF</button>
       <button type="button" onclick="downloadFile('svg');">SVG</button>
@@ -79,6 +80,7 @@ var placeLabels;
 var resetCurves;
 var save;
 var downloadFile;
+var setPageSize;
 
 function onRendererInitialized(canvasTilesRenderer) {
 
@@ -148,10 +150,11 @@ function onRendererInitialized(canvasTilesRenderer) {
   var editor = new TripGraphEditor(canvasTilesRenderer, graph);
   canvasTilesRenderer.pinchZoom.touchEventHandlers.push(editor);
 
-  setFrame = function() {
+  setFrame = function(width, height) {
     var canvas = canvasTilesRenderer.canvas;
-    canvasTilesRenderer.setLocation(graph.location(canvas.width/canvas.height,
-                                                   1.2));
+    var w = width || canvas.width;
+    var h = height || canvas.height;
+    canvasTilesRenderer.setLocation(graph.location(w/h, 1.2));
   };
 
   placeLabels = function() {
@@ -161,8 +164,8 @@ function onRendererInitialized(canvasTilesRenderer) {
   };
 
   resetCurves = function() {
+    graph.createDefaultBezier();
     tripLayer.graph = tripLayer.makeFusedGraph(graph);
-    tripLayer.graph.createDefaultBezier();
 
     tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
     canvasTilesRenderer.refresh();
@@ -178,7 +181,7 @@ function onRendererInitialized(canvasTilesRenderer) {
         window.location.origin + '/api/' + type + '/'  + encodeURI(trip));
   };
 
-  var setPageSize = function() {
+  setPageSize = function() {
     var res = $('#pageSizeSelector').val().split('x');
     console.log('Res: ' + res[0] + ' x ' + res[1]);
     var mmToPoint = 2.83465;
@@ -186,16 +189,13 @@ function onRendererInitialized(canvasTilesRenderer) {
     var h = Math.floor(res[1] * mmToPoint);
     $('#mapContainer').width(w);
     $('#mapContainer').height(h);
-    placeLabels();
+    setFrame(w, h);
+    setTimeout(function() {
+      placeLabels();
+    }, 20);
   };
 
   setPageSize();
-  setTimeout(function() {
-    setFrame();
-    setTimeout(function() {
-      placeLabels();
-    }, 0);
-  }, 0);
 
 
   $('#pageSizeSelector').change(setPageSize);

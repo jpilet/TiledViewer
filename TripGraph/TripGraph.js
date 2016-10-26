@@ -85,8 +85,8 @@ TripGraph.prototype.createDefaultBezier = function (stopovers) {
     var to = this.nodes[e.to];
 
     this.edges[i] = {
-      from: from,
-      to: to,
+      from: e.from,
+      to: e.to,
       controlPoints: TripGraph.generateControlPoints(undefined,
                                                      from.coord, to.coord)
     };
