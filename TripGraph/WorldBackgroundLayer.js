@@ -16,6 +16,11 @@ function WorldBackgroundLayer(params) {
   }
 
   var me = this;
+  if (this.params.onCountryClic) {
+    this.renderer.addClicHandler(function(pos) {
+      return me.handleClic(pos);
+    });
+  }
 
   this.leftLongitude = params.leftLongitude || -169.110266;
   this.topLatitude = params.topLatitude || 83.63001;
@@ -31,6 +36,113 @@ WorldBackgroundLayer.prototype.save = function() {
       r[key] = me.params[key];
       });
   return r;
+};
+
+WorldBackgroundLayer.bboxContains = function(bbox, p) {
+  return (
+      (bbox.min[0] < p.x)
+      && (bbox.max[0] > p.x)
+      && (bbox.min[1] < p.y)
+      && (bbox.max[1] > p.y));
+};
+
+WorldBackgroundLayer.prototype.countryAtPos = function(pos) {
+  var countries =WorldBackgroundLayer.countries; 
+  var context = this.renderer.canvas.getContext('2d');
+  var clickedCountry;
+  var me = this;
+  for (var i in countries) {
+    var country = countries[i];
+    if (WorldBackgroundLayer.bboxContains(country.bbox, pos)) {
+      this.canvasCommands(context,
+                          country.commands,
+                          function() {
+                            if (context.isPointInPath(pos.x * me.sx + me.tx,
+                                                      pos.y * me.sy + me.ty)) {
+                              clickedCountry = country;
+                            }
+                          }
+                         );
+      if (clickedCountry) {
+        return clickedCountry;
+      }
+    }
+  }
+  return undefined;
+};
+
+WorldBackgroundLayer.prototype.handleClic = function(pos) {
+  if (!this.params.onCountryClic) {
+    return false;
+  }
+
+  var p = {
+    x: (pos.startViewerPos.x - this.tx) / this.sx,
+    y: (pos.startViewerPos.y - this.ty) / this.sy
+  };
+  var country = this.countryAtPos(p);
+  if (country) {
+    this.params.onCountryClic(country);
+    return true;
+  }
+  return false;
+};
+
+WorldBackgroundLayer.prototype.canvasCommands
+  = function(context, coords, pathCallback, pointCallback) {
+  var p = [0, 0];
+
+  var moveAbsolute = false;
+
+  var tx = this.tx;
+  var ty = this.ty;
+  var sx = this.sx;
+  var sy = this.sy;
+
+  for (var j = 0; j < coords.length; ++j) {
+    var c = coords[j];
+
+    if (c == 'M') {
+      moveAbsolute = false;
+      ++j;
+      p = coords[j].slice();
+      if (pointCallback) { pointCallback(p); }
+      context.beginPath();
+      context.moveTo(p[0] * sx + tx, p[1] * sy + ty);
+    } else if (c == 'm') {
+      moveAbsolute = false;
+      ++j;
+      var delta = coords[j];
+      p[0] += delta[0];
+      p[1] += delta[1];
+      context.beginPath();
+      if (pointCallback) { pointCallback(p); }
+      context.moveTo(p[0] * sx + tx, p[1] * sy + ty);
+    } else if (c == 'z') {
+      context.closePath();
+      if (pathCallback) { pathCallback(); }
+    } else if (c == 'l') {
+      moveAbsolute = false;
+    } else if (c == 'L') {
+      moveAbsolute = true;
+      ++j;
+      var p = coords[j].slice();
+      if (pointCallback) { pointCallback(p); }
+      context.lineTo(p[0] * sx + tx, p[1] * sy + ty);
+    } else if (c.length > 1) {
+      if (moveAbsolute) {
+        p = c.slice();
+      } else {
+        var delta = c;
+        p[0] += delta[0];
+        p[1] += delta[1];
+      }
+      if (pointCallback) { pointCallback(p); }
+      context.lineTo(p[0] * sx + tx, p[1] * sy + ty);
+    } else {
+      console.log('unknown command: ' + c);
+    }
+  }
 };
 
 WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
@@ -51,13 +163,13 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
   var bottomright = pinchZoom.viewerPosFromWorldPos(bottomRightWorld);
 
 
-  var tx = topleft.x;
-  var ty = topleft.y;
-  var sx = (bottomright.x - topleft.x) / 1009.6727;
-  var sy = (bottomright.y - topleft.y) / 665.96301;
+  this.tx = topleft.x;
+  this.ty = topleft.y;
+  var sx = this.sx = (bottomright.x - topleft.x) / 1009.6727;
+  var sy = this.sy = (bottomright.y - topleft.y) / 665.96301;
 
-  tx += -0.80425156 * sx;
-  ty += 0.25140147 * sy;
+  var tx = this.tx += -0.80425156 * this.sx;
+  var ty = this.ty += 0.25140147 * this.sy;
 
   var parseCoord = function(c) {
     var a = c.split(',');
@@ -102,6 +214,7 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
       }
     }
 
+    var computeBbox = undefined;
     if (country.bbox) {
       if ((country.bbox.max[0] * sx + tx) <= 0
           || (country.bbox.min[0] * sx + tx) >= canvas.width
@@ -111,57 +224,21 @@ WorldBackgroundLayer.prototype.draw = function(canvas, pinchZoom,
       }
     } else {
       country.bbox = { min: undefined, max: undefined };
+      computeBbox = 
+        function(p) {
+          addPointToBbox(country.bbox, p);
+        };
     }
 
-    var coords = country.commands;
-
-    var p = [0, 0];
-
-    for (var j = 0; j < coords.length; ++j) {
-      var c = coords[j];
-
-      if (c == 'M') {
-        moveAbsolute = false;
-        ++j;
-        p = coords[j].slice();
-        addPointToBbox(country.bbox, p);
-        context.beginPath();
-        context.moveTo(p[0] * sx + tx, p[1] * sy + ty);
-      } else if (c == 'm') {
-        moveAbsolute = false;
-        ++j;
-        var delta = coords[j];
-        p[0] += delta[0];
-        p[1] += delta[1];
-        context.beginPath();
-        addPointToBbox(country.bbox, p);
-        context.moveTo(p[0] * sx + tx, p[1] * sy + ty);
-      } else if (c == 'z') {
-        context.closePath();
-        context.fill();
-        context.stroke();
-      } else if (c == 'l') {
-        moveAbsolute = false;
-      } else if (c == 'L') {
-        moveAbsolute = true;
-        ++j;
-        var p = coords[j].slice();
-        addPointToBbox(country.bbox, p);
-        context.lineTo(p[0] * sx + tx, p[1] * sy + ty);
-      } else if (c.length > 1) {
-        if (moveAbsolute) {
-          p = c.slice();
-        } else {
-          var delta = c;
-          p[0] += delta[0];
-          p[1] += delta[1];
-        }
-        addPointToBbox(country.bbox, p);
-        context.lineTo(p[0] * sx + tx, p[1] * sy + ty);
-      } else {
-        console.log('unknown command: ' + c);
-      }
-    }
+    this.canvasCommands(
+        context,
+        country.commands,
+        function() {
+          context.fill();
+          context.stroke();
+        },
+        computeBbox
+    );
   }
 
 };

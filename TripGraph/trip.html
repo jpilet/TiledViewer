@@ -96,7 +96,15 @@ var tripName = "vietnam tour";
 
 function onRendererInitialized(canvasTilesRenderer) {
 
-  var worldLayer = new WorldBackgroundLayer({ renderer: canvasTilesRenderer});
+  var worldLayer = new WorldBackgroundLayer({
+    renderer: canvasTilesRenderer,
+    onCountryClic: function(country) {
+      $('#countrySelector').val(country.id);
+      var color = (worldLayer.params.countryColors[country.id]
+        || worldLayer.params.landColor);
+      $('#countryColor').val(color).focus();
+    }
+  });
   canvasTilesRenderer.layers[0] = worldLayer;
 
   function latLonToCoord(lat, lon) {
@@ -237,7 +245,7 @@ function onRendererInitialized(canvasTilesRenderer) {
     var country = $('#countrySelector').val();
     var color = (worldLayer.params.countryColors[country]
       || worldLayer.params.landColor);
-    $('#countryColor').val(color);
+    $('#countryColor').val(color).focus();
   });
 }
 
