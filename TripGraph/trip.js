@@ -239,6 +239,10 @@ function onRendererInitialized(canvasTilesRenderer) {
   });
 
 
+  splitCurve = function() {
+    editor.splitCurve();
+    canvasTilesRenderer.refresh();
+  };
 }
 
 function fillCountrySelector() {

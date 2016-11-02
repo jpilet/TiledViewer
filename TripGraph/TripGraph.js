@@ -93,6 +93,45 @@ TripGraph.prototype.createDefaultBezier = function (stopovers) {
   }
 };
 
+TripGraph.replaceArray = function(a, b) {
+  a.length = b.length;
+  for (var i in b) {
+    a[i] = b[i];
+  }
+};
+
+TripGraph.prototype.splitEdge = function (edge) {
+  var bezier = this.bezier(edge);
+  if (bezier.length == 1) {
+    bezier = bezier[0];
+
+    /*
+    var subBezier = bezier.split(.5);
+
+    TripGraph.replaceArray(edge.controlPoints, [
+      subBezier.left.points[1],
+      subBezier.left.points[2],
+      subBezier.left.points[3],
+      subBezier.right.points[1],
+      subBezier.right.points[2]
+    ]);
+    */
+
+    var a = [];
+    var n = 4;
+    for (var i = 1; i <= n; ++i) {
+      a.push(bezier.get(i / (n+1)));
+    }
+
+    TripGraph.replaceArray(edge.controlPoints, a);
+  } else {
+    TripGraph.replaceArray(edge.controlPoints, [
+      edge.controlPoints[0],
+      edge.controlPoints[edge.controlPoints.length - 1]
+    ]);
+  }
+};
+
 TripGraph.generateControlPoints = function(p0, p1, p2, p3) {
   var delta = Point.minus(p2, p1).mul(1/3);
   var norm = new Point(-delta.y, delta.x);
@@ -111,24 +150,67 @@ TripGraph.generateControlPoints = function(p0, p1, p2, p3) {
   ];
   */
 };
-
-TripGraph.prototype.bezier = function(edge) {
-  if (!edge.controlPoints || edge.hidden) {
-    return undefined;
-  }
-
-  var points = [
-    this.nodes[edge.from].coord,
-    edge.controlPoints[0],
-    edge.controlPoints[1],
-    this.nodes[edge.to].coord
-  ];
+TripGraph.bezierFromPoints = function(points) {
   var result = [];
   for (var i = 0; i < 4; ++i) {
     result.push(points[i].x);
     result.push(points[i].y);
   }
   return new Bezier(result);
+};
+
+TripGraph.bezierThroughPoints = function(points) {
+  var result = [];
+  var t = .2;
+  for (var i = 1; i < points.length; ++i) {
+    var prev = (i == 1 ? points[i-1] : points[i-2]);
+    var a = points[i-1];
+    var b = points[i];
+    var next = (i == (points.length - 1) ? points[i] : points[i+1]);
+    result.push(TripGraph.bezierFromPoints([
+      a,
+      Point.plus(a, Point.times(t, Point.minus(b, prev))),
+      Point.plus(b, Point.times(t, Point.minus(a, next))),
+      b]));
+  }
+  return result;
+};
+
+TripGraph.prototype.bezier = function(edge) {
+  if (!edge.controlPoints || edge.hidden) {
+    return [];
+  }
+
+  if (edge.controlPoints.length == 2) {
+    var points = [
+      this.nodes[edge.from].coord,
+      edge.controlPoints[0],
+      edge.controlPoints[1],
+      this.nodes[edge.to].coord
+    ];
+    return [TripGraph.bezierFromPoints(points)];
+  } else if (edge.controlPoints.length == 5) {
+    var points1 = [
+      this.nodes[edge.from].coord,
+      edge.controlPoints[0],
+      edge.controlPoints[1],
+      edge.controlPoints[2],
+    ];
+    var points2 = [
+      edge.controlPoints[2],
+      edge.controlPoints[3],
+      edge.controlPoints[4],
+      this.nodes[edge.to].coord
+    ];
+    return [
+      TripGraph.bezierFromPoints(points1),
+      TripGraph.bezierFromPoints(points2)
+    ];
+  } else {
+    var allPoints = [this.nodes[edge.from].coord]
+      .concat(edge.controlPoints, [ this.nodes[edge.to].coord ]);
+    return TripGraph.bezierThroughPoints(allPoints);
+  }
 }
 
 TripGraph.prototype.bounds = function() {

@@ -25,10 +25,22 @@ TripGraphLayer.prototype.draw = function(canvas, pinchZoom,
   var pixelRatio = this.renderer.pixelRatio;
 
   graph.edges.forEach(function(edge) {
-    var bezier = graph.bezier(edge);
-    if (bezier) {
-      me.setEdgeStrokeStyle(context, edge);
+    me.setEdgeStrokeStyle(context, edge);
+
+    var bezierCurves = graph.bezier(edge);
+    for (var i in bezierCurves ) {
+      var bezier = bezierCurves[i];
       TripGraphLayer.drawBezier(context, pinchZoom, bezier, pixelRatio);
+    }
+    if (bezierCurves.length > 1 && edge.drawMiddlePoint) {
+      for (var i in bezierCurves) {
+        var p = pinchZoom.viewerPosFromWorldPos(bezierCurves[i].points[3]);
+        var radius = 5 * pixelRatio;
+        context.beginPath();
+        context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
+        context.fillStype = '#000000';
+        context.fill();
+      }
     }
   });
 
@@ -382,19 +394,22 @@ TripGraphLayer.prototype.placeLabels = function(context) {
   var bezierBbox = [];
   var bezierLUT = [];
   for (var e in this.graph.edges) {
-    var curve = this.graph.bezier(this.graph.edges[e]);
-    bezierCurves.push(curve);
-    var bbox = curve.bbox();
-    bezierBbox.push({
-      min: pinchZoom.viewerPosFromWorldPos(bbox.x.min, bbox.y.min),
-      max: pinchZoom.viewerPosFromWorldPos(bbox.x.max, bbox.y.max)
-    });
-    var lut = curve.getLUT(30);
-    var transformedLut = [];
-    for (var i in lut) {
-      transformedLut.push(pinchZoom.viewerPosFromWorldPos(lut[i]));
+    var curves = this.graph.bezier(this.graph.edges[e]);
+    for (var i in curves) {
+      var curve = curves[i];
+      bezierCurves.push(curve);
+      var bbox = curve.bbox();
+      bezierBbox.push({
+        min: pinchZoom.viewerPosFromWorldPos(bbox.x.min, bbox.y.min),
+        max: pinchZoom.viewerPosFromWorldPos(bbox.x.max, bbox.y.max)
+      });
+      var lut = curve.getLUT(30);
+      var transformedLut = [];
+      for (var i in lut) {
+        transformedLut.push(pinchZoom.viewerPosFromWorldPos(lut[i]));
+      }
+      bezierLUT.push(transformedLut);
     }
-    bezierLUT.push(transformedLut);
   }
 
   labeler.alt_energy(function(index, lab, anc) {
@@ -539,6 +554,7 @@ TripGraphLayer.prototype.makeFusedGraph = function(graph) {
       var newEdge = shallowCopy(edge);
       newEdge.from = na;
       newEdge.to = nb;
+      newEdge.originalEdge = edge;
       result.edges.push(newEdge);
     }
   }
