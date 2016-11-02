@@ -38,6 +38,7 @@
   <script src="world.js"></script>
   <script src="../node_modules/bezier-js/bezier.js"></script>
   <script src="labeler.js"></script>
+  <script src="trip.js"></script>
 </head>
 
 <body>
@@ -72,13 +73,20 @@
           <option value="74x105">A6 portrait</option>
         </select>
       </div>
-      <div>Sea color: <input type='color' id='seaColor' value='#a0d2ff'/> </div>
-      <div>Land color: <input type='color' id='landColor' value='#cccccc'/></div>
-      <div>Border color: <input type='color' id='borderColor' value='#ffffff'/></div>
+      <span>Sea color: <input type='color' id='seaColor' value='#a0d2ff'/> </span>
+      <span>Land color: <input type='color' id='landColor' value='#cccccc'/></span>
+      <span>Border color: <input type='color' id='borderColor' value='#ffffff'/></span>
       <div>
         <select id="countrySelector" name="country">
         <input type='color' id='countryColor' />
         </select>
+      </div>
+      <div id="labelEditor">
+        <input id="selectedLabel" value=""/>
+        font size: <input id="selectedLabelFontSize" type="number" value="16" min="5" max="64"/>
+        <input id="selectedLabelColor" type='color' value='#000000'/>
+        <input id="selectedLabelShadowColor" type='color' value='#ffffff'/>
+        <input id="selectedLabelShadowAlpha" type='range' value="0.8" min=0 max=1 step="0.00390625">
       </div>
     </footer>
     <p id="savedData"></p>
@@ -92,181 +100,60 @@ var save;
 var downloadFile;
 var setPageSize;
 
-var tripName = "vietnam tour";
+function latLonToCoord(lat, lon) {
+  var p = Utils.latLonToWorld([lon, lat]);
+  return [p.x, p.y];
+};
 
-function onRendererInitialized(canvasTilesRenderer) {
 
-  var worldLayer = new WorldBackgroundLayer({
-    renderer: canvasTilesRenderer,
-    onCountryClic: function(country) {
-      $('#countrySelector').val(country.id);
-      var color = (worldLayer.params.countryColors[country.id]
-        || worldLayer.params.landColor);
-      $('#countryColor').val(color).focus();
-    }
-  });
-  canvasTilesRenderer.layers[0] = worldLayer;
+/*
+var graph = TripGraph.createFromStopovers([
+  { name: 1, label: 'Venice', coord: latLonToCoord(45.440847, 12.315515) },
+  { name: 2, label: 'Dubrovnik', coord: latLonToCoord(42.650661, 18.094424) },
+  { name: 3, label: 'Valetta', coord: latLonToCoord(35.898908, 35.898908) },
+  { name: 4, label: 'Santorin', coord: latLonToCoord(36.385418, 25.42958) },
+  { name: 5, label: 'Athens', coord: latLonToCoord(37.98381, 23.727539) },
+  { name: 6, label: 'Istanbul', coord: latLonToCoord(41.008238, 28.978359) }
+]);
+*/
 
-  function latLonToCoord(lat, lon) {
-    var p = Utils.latLonToWorld([lon, lat]);
-    return [p.x, p.y];
-  };
+var graph = TripGraph.createFromStopovers([
+  { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
+  { name: 2, label: 'Sapa', coord: latLonToCoord(22.339931, 103.852319) },
+  { name: 3, label: 'Thanh Phu', coord: latLonToCoord(22.28276, 103.92579) },
+  { name: 4, label: 'Sin Chai', coord: latLonToCoord(22.263698, 103.991708) },
+  { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
+  { name: 6, label: 'Halong', coord: latLonToCoord(20.792083, 106.939477) },
+  { name: 7, label: 'Tam Coc', coord: latLonToCoord(20.243855, 105.925645) },
+  { name: 8, label: 'Hoi-An', coord: latLonToCoord(15.871443, 108.382874) },
+  { name: 9, label: 'Saigon', coord: latLonToCoord(10.85653, 106.726685) },
+  {
+    name: 10,
+    labelIcon: { url: 'plane.png', width: 20, autorotate: - Math.PI/2 },
+    coord: latLonToCoord(10.85653, 106.726685),
+    properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
+  },{
+    name: 11,
+    labelIcon: { url: 'plane.png', width: 20, autorotate: Math.PI/2 },
+    coord: latLonToCoord(21.027764, 105.83416),
+    properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
+  }
+]);
 
-  /*
-  var graph = TripGraph.createFromStopovers([
-    { name: 1, label: 'Venice', coord: latLonToCoord(45.440847, 12.315515) },
-    { name: 2, label: 'Dubrovnik', coord: latLonToCoord(42.650661, 18.094424) },
-    { name: 3, label: 'Valetta', coord: latLonToCoord(35.898908, 35.898908) },
-    { name: 4, label: 'Santorin', coord: latLonToCoord(36.385418, 25.42958) },
-    { name: 5, label: 'Athens', coord: latLonToCoord(37.98381, 23.727539) },
-    { name: 6, label: 'Istanbul', coord: latLonToCoord(41.008238, 28.978359) }
+var tripName = "vn";
+/*
+var graph = TripGraph.createFromStopovers([
+    { name: 'A', coord: [ 0.5137081056967938, 0.3285825337142506 ], label: 'One' },
+    { name: 'B', coord: [ 0.5137305609845453, 0.3285931138521079 ], label: 'Two' },
+    { name: 'C', coord: [ 0.5137481056967938, 0.3286025337142506 ], label: 'Three' },
+    { name: 'D', coord: [ 0.5137381056967938, 0.3286125337142506 ], label: 'Four' },
+    { name: 'E', coord: [ 0.5137081056967938, 0.3286225337142506 ], label: 'Five' },
+    { name: 'F', coord: [ 0.5137181056967938, 0.3286425337142506 ], label: 'Six' }
   ]);
   */
-  
-  var graph = TripGraph.createFromStopovers([
-    { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
-    { name: 2, label: 'Sapa', coord: latLonToCoord(22.339931, 103.852319) },
-    { name: 3, label: 'Thanh Phu', coord: latLonToCoord(22.28276, 103.92579) },
-    { name: 4, label: 'Sin Chai', coord: latLonToCoord(22.263698, 103.991708) },
-    { name: 1, label: 'Hanoi', coord: latLonToCoord(21.027764, 105.83416) },
-    { name: 6, label: 'Halong', coord: latLonToCoord(20.792083, 106.939477) },
-    { name: 7, label: 'Tam Coc', coord: latLonToCoord(20.243855, 105.925645) },
-    { name: 8, label: 'Hoi-An', coord: latLonToCoord(15.871443, 108.382874) },
-    { name: 9, label: 'Saigon', coord: latLonToCoord(10.85653, 106.726685) },
-    {
-      name: 10,
-      labelIcon: { url: 'plane.png', width: 20, autorotate: - Math.PI/2 },
-      coord: latLonToCoord(10.85653, 106.726685),
-      properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
-    },{
-      name: 11,
-      labelIcon: { url: 'plane.png', width: 20, autorotate: Math.PI/2 },
-      coord: latLonToCoord(21.027764, 105.83416),
-      properties: { point: false, leaderLine: 'center', dashed: [5,3], leaderLineWidth: 2 }
-    }
-  ]);
-  
-  /*
-  var graph = TripGraph.createFromStopovers([
-      { name: 'A', coord: [ 0.5137081056967938, 0.3285825337142506 ], label: 'One' },
-      { name: 'B', coord: [ 0.5137305609845453, 0.3285931138521079 ], label: 'Two' },
-      { name: 'C', coord: [ 0.5137481056967938, 0.3286025337142506 ], label: 'Three' },
-      { name: 'D', coord: [ 0.5137381056967938, 0.3286125337142506 ], label: 'Four' },
-      { name: 'E', coord: [ 0.5137081056967938, 0.3286225337142506 ], label: 'Five' },
-      { name: 'F', coord: [ 0.5137181056967938, 0.3286425337142506 ], label: 'Six' }
-    ]);
-    */
 
-  var tripLayer = new TripGraphLayer({
-    renderer: canvasTilesRenderer,
-    graph: graph
-  });
-
-  canvasTilesRenderer.addLayer(tripLayer);
-
-  tripLayer.loadIcons(function(err) { canvasTilesRenderer.refresh(); });
-
-  var editor = new TripGraphEditor(canvasTilesRenderer, graph);
-  canvasTilesRenderer.pinchZoom.touchEventHandlers.push(editor);
-
-  setFrame = function(width, height) {
-    var canvas = canvasTilesRenderer.canvas;
-    var w = width || canvas.width;
-    var h = height || canvas.height;
-    canvasTilesRenderer.setLocation(graph.location(w/h, 1.2));
-  };
-
-  placeLabels = function() {
-    tripLayer.graph = tripLayer.makeFusedGraph(graph);
-    editor.graph = tripLayer.graph;
-    tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
-    canvasTilesRenderer.refresh();
-  };
-
-  resetCurves = function() {
-    graph.createDefaultBezier();
-    tripLayer.graph = tripLayer.makeFusedGraph(graph);
-    editor.graph = tripLayer.graph;
-
-    tripLayer.placeLabels(canvasTilesRenderer.canvas.getContext('2d'));
-    canvasTilesRenderer.refresh();
-  }
-
-  save = function() {
-    $('#savedData').text(tripLayer.saveToString());
-  };
-
-  downloadFile = function(type) {
-    var trip = tripLayer.saveToString();
-    $.ajax({
-      url: '/api/' + encodeURI(tripName),
-      type: 'POST',
-      data: {s: trip},
-      success: function(respoonse) {
-        window.open(
-            window.location.origin + '/api/' + type + '/'  + encodeURI(tripName));
-      },
-      dataType: 'json'
-    });
-  };
-
-  setPageSize = function() {
-    var res = $('#pageSizeSelector').val().split('x');
-    console.log('Res: ' + res[0] + ' x ' + res[1]);
-    var mmToPoint = 2.83465;
-    var w = Math.floor(res[0] * mmToPoint);
-    var h = Math.floor(res[1] * mmToPoint);
-    $('#mapContainer').width(w);
-    $('#mapContainer').height(h);
-    setFrame(w, h);
-    setTimeout(function() {
-      placeLabels();
-    }, 20);
-  };
-
-  setPageSize();
-
-
-  $('#pageSizeSelector').change(setPageSize);
-
-  ['seaColor', 'borderColor', 'landColor'].map(function(key) {
-    $('#' + key).change(function() {
-      worldLayer.params[key] = this.value;
-      canvasTilesRenderer.refresh();
-    });
-  });
-
-  $('#countryColor').change(function() {
-    var color = this.value;
-    var country = $('#countrySelector').val();
-    worldLayer.params.countryColors[country] = color;
-    canvasTilesRenderer.refresh();
-  });
-
-  $('#countrySelector').change(function() {
-    var country = $('#countrySelector').val();
-    var color = (worldLayer.params.countryColors[country]
-      || worldLayer.params.landColor);
-    $('#countryColor').val(color).focus();
-  });
-}
-
-function fillCountrySelector() {
-  var selector = $('#countrySelector');
-
-  var countries =WorldBackgroundLayer.countries; 
-  for (var i in countries) {
-    var country = countries[i];
-    selector.append($('<option>', {value: country.id}).text(country.title));
-  }
-}
 fillCountrySelector();
 
-
     </script>
-
-  <svg viewBox="0 0 800 600" width="800" height="600">
-      <use xlink:href="worldHigh.svg"></use>
-  </svg>
 </body>
 </html>

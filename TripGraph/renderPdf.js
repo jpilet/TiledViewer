@@ -50,15 +50,13 @@ function renderBuffer(trip, format, cb) {
     localImagePath: __dirname
   });
 
-  trip.world.renderer = renderer;
-  renderer.layers[0] =
-      new WorldBackgroundLayer(trip.world);
+  renderer.layers[0] = new WorldBackgroundLayer({ renderer: renderer });
 
   var tripLayer = new TripGraphLayer({
-    renderer: renderer,
-    graph: new TripGraph(trip.graph),
-    defaultRadius: trip.defaultRadius
+    renderer: renderer
   });
+
+  tripLayer.load(trip);
 
   renderer.addLayer(tripLayer);
 

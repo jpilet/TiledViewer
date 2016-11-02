@@ -5,6 +5,11 @@ function TripGraphLayer(params) {
   this.renderer = params.renderer;
   this.defaultRadius = params.defaultRadius || 6;
   this.icons = {};
+  this.defaultTextProp = {
+    fontSize: params.defaultFontSize || 20,
+    stroke: 'rgba(255,255,255,.8)',
+    fill: '#000000'
+  };
 
   if (!this.renderer) {
     throw(new Error("TripGraphLayer: no renderer !"));
@@ -119,7 +124,8 @@ TripGraphLayer.prototype.drawNodeLabel = function(context, pinchZoom, node) {
     var pos = labelPoint || pinchZoom.viewerPosFromWorldPos(node.coord);
     if (node.label) {
       drawText(context, node.label, pos,
-               this.renderer.pixelRatio, node.properties || {});
+               this.renderer.pixelRatio, node.properties || {},
+               this.defaultTextProp);
     }
     if (node.labelIcon && node.labelIcon.url in this.icons) {
       if (node.labelIcon.autorotate != undefined) {
@@ -129,6 +135,18 @@ TripGraphLayer.prototype.drawNodeLabel = function(context, pinchZoom, node) {
       }
       drawIcon(context, this.icons[node.labelIcon.url], node.labelIcon,
                pos, this.renderer.pixelRatio);
+    }
+    if (node.properties && node.properties.frame && node.label) {
+      var size = measureText(context, node.label,
+                             this.renderer.pixelRatio, node.properties || {},
+                             this.defaultTextProp);
+      context.strokeStyle = node.properties.frame;
+      size.width += 3 * this.renderer.pixelRatio;
+      size.height += 3 * this.renderer.pixelRatio;
+      context.rect(pos.x - size.width / 2,
+                   pos.y - size.height / 2,
+                   size.width, size.height);
+      context.stroke();
     }
   }
 };
@@ -176,9 +194,10 @@ TripGraphLayer.prototype.drawPoint = function(context, p, pixelRatio, properties
     context.fill();
 };
 
-function measureText(context, text, pixelRatio, properties) {
+function measureText(context, text, pixelRatio, properties, defaultTextProp) {
   var lines = text.split('\n');
-  var size = setTextStyle(context, pixelRatio, properties);
+  var size = setTextStyle(
+      context, pixelRatio, properties, defaultTextProp);
 
   var r = { width: 0, height: size * lines.length };
 
@@ -189,18 +208,18 @@ function measureText(context, text, pixelRatio, properties) {
   return r; 
 }
 
-function setTextStyle(context, pixelRatio, properties) {
+function setTextStyle(context, pixelRatio, properties, defaultTextProp) {
   properties = properties || {};
-  var fontSize = properties.fontSize || 20;
+  var fontSize = properties.fontSize || defaultTextProp.fontSize;
   fontSize *= pixelRatio;
   context.font = fontSize + 'px ' + (properties.font || 'Helvetica');
-  context.strokeStyle = properties.stroke || 'rgba(255,255,255,.8)';
+  context.strokeStyle = properties.stroke || defaultTextProp.stroke ;
   context.lineWidth = (properties.haloWidth || 4) * pixelRatio;
-  context.fillStyle = properties.fill || 'rgba(0,0,0,1)';
-  return fontSize;
+  context.fillStyle = properties.fill || defaultTextProp.fill;
+  return parseInt(fontSize);
 };
 
-function drawText(context, text, pos, pixelRatio, properties) {
+function drawText(context, text, pos, pixelRatio, properties, defaultTextProp) {
   var offset = (properties.textOffset != undefined ? properties.textOffset : 20)
     * pixelRatio;
 
@@ -255,7 +274,7 @@ function drawText(context, text, pos, pixelRatio, properties) {
   var x = pos.x + dx;
   var y = pos.y + dy;
 
-  var h = setTextStyle(context, pixelRatio, properties);
+  var h = setTextStyle(context, pixelRatio, properties, defaultTextProp);
 
   var lines = text.split('\n');
 
@@ -335,7 +354,8 @@ TripGraphLayer.prototype.placeLabels = function(context) {
 
     var size, name;
     if (node.label) {
-      size = measureText(context, node.label, pixelRatio, node.properties);
+      size = measureText(context, node.label, pixelRatio,
+                         node.properties, this.defaultTextProp);
       name = node.label;
     } else if (node.labelIcon) {
       size = this.getLabelIconSize(context, node);
@@ -573,6 +593,7 @@ TripGraphLayer.prototype.saveToObj = function() {
     graph: this.graph,
     location: this.renderer.location,
     defaultRadius: this.defaultRadius,
+    defaultTextProp: this.defaultTextProp,
     width: this.renderer.canvas.width / this.renderer.pixelRatio,
     height: this.renderer.canvas.height / this.renderer.pixelRatio,
     world: this.renderer.layers[0].save()
@@ -587,9 +608,9 @@ TripGraphLayer.prototype.load = function(data) {
   if (typeof data == 'string') {
     data = JSON.parse(data);
   }
-  this.graph = data.graph;
+  this.graph = new TripGraph(data.graph);
   this.defaultRadius = data.defaultRadius;
-
+  this.defaultTextProp = data.defaultTextProp;
   for (var key in data.world) {
     this.renderer.layers[0].params[key] = data.world[key];
   }

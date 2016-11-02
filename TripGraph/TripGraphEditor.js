@@ -14,6 +14,7 @@ TripGraphEditor.prototype.acceptTouchEvent = function(viewer, world, type) {
   this.startWorldPos = world;
   var clickedLabel = this.findLabelAtWorldPos(world);
   if (clickedLabel) {
+    this.selectLabel(clickedLabel);
     var properties = clickedLabel.properties;
     this.applyDelta = function(delta) {
       properties.labelCoord.x += delta.x;
@@ -37,6 +38,7 @@ TripGraphEditor.prototype.acceptTouchEvent = function(viewer, world, type) {
         pointToMove.x += delta.x;
         pointToMove.y += delta.y;
       };
+      this.deselectLabel();
       return true;
     }
   }
@@ -44,6 +46,24 @@ TripGraphEditor.prototype.acceptTouchEvent = function(viewer, world, type) {
   this.applyDelta = undefined;
   return false;
 };
+
+TripGraphEditor.prototype.selectLabel = function(label) {
+  if (this.selectedLabel) {
+    delete this.selectedLabel.properties.frame;
+  }
+  this.selectedLabel = label;
+  if (this.onLabelSelect) {
+    this.onLabelSelect(label);
+  }
+  if (label) {
+    label.properties = label.properties || {};
+    label.properties.frame = '#000000';
+  }
+  this.renderer.refreshIfNotMoving();
+};
+
+TripGraphEditor.prototype.deselectLabel =
+  function() { return this.selectLabel(); };
 
 TripGraphEditor.prototype.handleMouseDown = function(event) {
   event.preventDefault();
