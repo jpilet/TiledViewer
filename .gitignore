@@ -6,10 +6,9 @@
 examples
 testapp
 tilegenerator/build
-frontend/mapviewer.js
-frontend/mapviewer.min.js
+mapviewer.js
+mapviewer.min.js
 downloadTiles
 bower_components
 node_modules
 tags
-TripGraph/out.pdf
