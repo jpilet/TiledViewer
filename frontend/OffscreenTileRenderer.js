@@ -25,6 +25,7 @@ renderer.render(function(err) {
  */
 
 var Canvas = require('canvas');
+require('../fonts/register_fonts')(Canvas);
 var fs = require('fs');
 var vm = require('vm');
 var request = require('request');
@@ -48,7 +49,6 @@ for (var i in sources) {
                       { filename: sources[i] });
 }
 
-
 cachedRequest.setCacheDirectory('/tmp/imgcache');
 cachedRequest.setValue('ttl', 7 * 24 * 60 * 60 * 1000);
 
@@ -65,6 +65,8 @@ function OffscreenTileRenderer(params) {
 
   this.numLoading = 0;
   this.numFailedLoading = 0;
+  this.renderingDone = function() { };
+  this.renderingFailed = function() { };
 }
 
 OffscreenTileRenderer.prototype = Object.create(CanvasTilesRenderer.prototype);
