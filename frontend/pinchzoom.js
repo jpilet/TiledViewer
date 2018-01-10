@@ -2,7 +2,7 @@
  * @author Julien Pilet
  */
 
-function PinchZoom(element, transformChanged, width, height) {
+function PinchZoom(element, transformChanged, width, height, noInteraction) {
   this.ongoingTouches = {};
   this.transform = new AffineTransform();
   this.transformChanged = transformChanged;
@@ -13,6 +13,7 @@ function PinchZoom(element, transformChanged, width, height) {
   this.lastTouchDown = 0;
   this.lastTouchDownPos = {x:-1, y:-1};
   this.minScale = 0;
+  this.locked = false;
 
   // if true, the map will always fill the screen, ie the user wont be able
   // to zoom out when either the full width or full height of the map is visible.
@@ -26,34 +27,35 @@ function PinchZoom(element, transformChanged, width, height) {
   this.currentTouchEventHandler = this;
   this.touchEventHandlers = [ this ];
 
-  e.addEventListener("touchstart", function(event) {
-      t.selectEventHandlerTouchStart(event);
-      t.currentTouchEventHandler.handleStart(event);
-    }, false);
-  e.addEventListener("touchend", function(event) {
-      t.currentTouchEventHandler.handleEnd(event);
-    }, false);
-  e.addEventListener("touchcancel", function(event) {
-      t.currentTouchEventHandler.handleEnd(event);
-    }, false);
-  e.addEventListener("touchmove", function(event) {
-      t.currentTouchEventHandler.handleMove(event);
-    }, false);
-  e.addEventListener("mousedown", function(event) {
-      t.selectEventHandlerMouse(event, 'mouseDown');
-      t.currentTouchEventHandler.handleMouseDown(event);
-    }, false);
-  e.addEventListener("mousemove", function(event) {
-      t.currentTouchEventHandler.handleMouseMove(event);
-    }, false);
-  e.addEventListener("mouseup", function(event) {
-      t.currentTouchEventHandler.handleMouseUp(event);
-    }, false);
-  addWheelListener(element, function(event) {
-      t.selectEventHandlerMouse(event, 'wheel');
-      t.currentTouchEventHandler.handleMouseWheel(event);
-    });
-  
+  if (!noInteraction) {
+    e.addEventListener("touchstart", function(event) {
+        t.selectEventHandlerTouchStart(event);
+        t.currentTouchEventHandler.handleStart(event);
+      }, false);
+    e.addEventListener("touchend", function(event) {
+        t.currentTouchEventHandler.handleEnd(event);
+      }, false);
+    e.addEventListener("touchcancel", function(event) {
+        t.currentTouchEventHandler.handleEnd(event);
+      }, false);
+    e.addEventListener("touchmove", function(event) {
+        t.currentTouchEventHandler.handleMove(event);
+      }, false);
+    e.addEventListener("mousedown", function(event) {
+        t.selectEventHandlerMouse(event, 'mouseDown');
+        t.currentTouchEventHandler.handleMouseDown(event);
+      }, false);
+    e.addEventListener("mousemove", function(event) {
+        t.currentTouchEventHandler.handleMouseMove(event);
+      }, false);
+    e.addEventListener("mouseup", function(event) {
+        t.currentTouchEventHandler.handleMouseUp(event);
+      }, false);
+    addWheelListener(element, function(event) {
+        t.selectEventHandlerMouse(event, 'wheel');
+        t.currentTouchEventHandler.handleMouseWheel(event);
+      });
+  }  
   element.pinchZoomInstance = this;
   this.element = element;
 }
@@ -189,6 +191,10 @@ PinchZoom.prototype.handleMouseUp = function(event) {
 
 PinchZoom.prototype.handleMouseMove = function(event) {
   event.preventDefault();
+  if (this.locked) {
+    return;
+  }
+
   
   if (this.ongoingTouches.mouse) {
     this.ongoingTouches.mouse.currentViewerPos = Utils.eventPosInElementCoordinates(event, this.element);
@@ -202,6 +208,9 @@ PinchZoom.prototype.handleMouseMove = function(event) {
 
 PinchZoom.prototype.handleMouseWheel = function(event) {
   event.preventDefault();
+  if (this.locked) {
+    return;
+  }
   
   var viewerPos = Utils.eventPosInElementCoordinates(event, this.element);
   var constraints = [{
@@ -282,6 +291,10 @@ PinchZoom.prototype.handleEnd = function(event) {
 
 PinchZoom.prototype.handleMove = function(event) {
   event.preventDefault();
+  if (this.locked) {
+    return;
+  }
+
   var touches = event.touches;
   var constraints = [];
   for (var i = 0; i < touches.length; i++) {
@@ -404,6 +417,10 @@ PinchZoom.prototype.bottomRightWorld = function() {
 }
 
 PinchZoom.prototype.enforceConstraints = function (newTransform, focusPoint) {
+  if (this.ignoreLimits) {
+    return;
+  }
+
   var T = newTransform.matrix;
 
   var topLeftWorld = this.topLeftWorld();

@@ -25,6 +25,10 @@ function CanvasTilesRenderer(params) {
   this.params.width = this.params.width || 1;
   this.params.height = this.params.height || 1;
   this.params.minScale = this.params.minScale || 0;
+
+  if (!('clearBorder' in this.params)) {
+    this.params.clearBorder = true;
+  }
   
   this.params.downgradeIfSlowerFPS = params.downgradeIfSlowerFPS || 15;
   this.params.downsampleDuringMotion = false;
@@ -52,18 +56,19 @@ function CanvasTilesRenderer(params) {
   
   var t = this;
   this.pinchZoom = new PinchZoom(t.canvas, function() {
-    t.location = t.getLocation();
-    if (t.params.onLocationChange) { t.params.onLocationChange(t); }
-    if (t.params.debug) {
-      t.debug('location: w:' + t.canvas.width
-              + ' h:' + t.canvas.height
-              + ' x:'+t.location.x + ' y:'+t.location.y
-              +' s:'+t.location.scale);
-    }
-    t.refresh();
-  },
-  this.params.width,
-  this.params.height);
+      t.location = t.getLocation();
+      if (t.params.onLocationChange) { t.params.onLocationChange(t); }
+      if (t.params.debug) {
+        t.debug('location: w:' + t.canvas.width
+                + ' h:' + t.canvas.height
+                + ' x:'+t.location.x + ' y:'+t.location.y
+                +' s:'+t.location.scale);
+      }
+      t.refresh();
+    },
+    this.params.width,
+    this.params.height,
+    this.params.noInteraction);
   this.pinchZoom.minScale = this.params.minScale;
   this.pinchZoom.fillScreen = !!this.params.fillScreen;
 
@@ -125,7 +130,8 @@ CanvasTilesRenderer.prototype.getLocation = function() {
  * \param location the location in the format returned by getLocation().
  */
 CanvasTilesRenderer.prototype.setLocation = function(location) {
-  if (isNaN(location.x) || isNaN(location.y) || isNaN(location.scale)) {
+  if (isNaN(location.x) || isNaN(location.y) || isNaN(location.scale)
+      || location.scale <= 0) {
     throw(new Error('invalid location'));
   }
   var canvas = this.canvas;
@@ -248,8 +254,9 @@ CanvasTilesRenderer.prototype.draw = function() {
   for (var i in this.layers) {
     this.layers[i].draw(canvas, pinchZoom, bboxTopLeft, bboxBottomRight);
   }
-  this.clearBorder(context);
-
+  if (this.params.clearBorder) {
+    this.clearBorder(context);
+  }
 
 
   // Rendering resolution is decreased during motion.
