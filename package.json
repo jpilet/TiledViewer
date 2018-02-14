@@ -2,7 +2,7 @@
   "name": "tiledviewer",
   "version": "1.0.0",
   "description": "Julien Pilet's slippy map engine",
-  "main": "frontend/OffscreenTileRenderer.js",
+  "main": "build/mapviewer.js",
   "directories": {
     "example": "examples"
   },
