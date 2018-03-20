@@ -18,6 +18,10 @@ Features
 - Fetch queue: TiledViewer organizes the tile fetch queue very seriously. Tiles that
   were previously requested but that are not needed any more will not be fetched.
 
+Requirements:
+-------------
+libcairo2-dev libjpeg-dev libgif-dev
+
 Usage
 -----
 
@@ -28,3 +32,4 @@ Author
 
 TiledViewer is written by Julien Pilet <julien.pilet@opticode.ch>
 see http://www.opticode.ch/
+
