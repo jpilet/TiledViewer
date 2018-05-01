@@ -27,6 +27,10 @@ function POILayer(params) {
 }
 
 function forEachFeature(geojson, callback) {
+  if (!geojson) {
+    return;
+  }
+
   if (geojson.type == "FeatureCollection") {
     var n = geojson.features.length;
     for (var i = 0; i < n; ++i) {
@@ -362,7 +366,9 @@ POILayer.prototype.loadIcon = function(name, url, options) {
 
 function getPathVisibleCoordinates(points, array) {
   for (var i = 0; i < points.length; ++i) {
-    array.push(Utils.latLonToWorld(points[i]));
+    if (isFinite(points[i][0])) {
+      array.push(Utils.latLonToWorld(points[i]));
+    }
   }
 }
 
@@ -374,7 +380,9 @@ POILayer.prototype.visibleCoordinateArray = function() {
   var f = {
     'Point' : function(feature, result) {
       if (!('hideIcon' in feature.properties) || !feature.properties.hideIcon) {
-        result.push(geojsonGetCoordinates(feature));
+        if (isFinite(feature.geometry.coordinates[0])) {
+          result.push(geojsonGetCoordinates(feature));
+        }
       }
     },
     'Polygon' : function(feature, result) {

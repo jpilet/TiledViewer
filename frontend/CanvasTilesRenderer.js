@@ -341,3 +341,20 @@ CanvasTilesRenderer.prototype.loadImage = function(url, success, failure) {
     };
   }
 };
+
+CanvasTilesRenderer.prototype.createPOILayer = function(args) {
+  args = args || {};
+  args.renderer = this;
+  return new POILayer(args);
+};
+
+CanvasTilesRenderer.prototype.createArrowLayer = function(args) {
+  args = args || {};
+  args.renderer = this;
+  return new ArrowLayer(args);
+};
+
+CanvasTilesRenderer.prototype.createScaleLayer = function(args) {
+  var scale = new ScaleLayer(args, this);
+  this.addLayer(scale);
+};
